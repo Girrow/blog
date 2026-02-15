@@ -121,6 +121,7 @@ const stageLength = 72;
 const stageWidth = 24;
 const posterMeshes = [];
 const walkableMeshes = [];
+const bridgeZones = [];
 
 const sparkleCount = 480;
 const sparkleGeo = new THREE.BufferGeometry();
@@ -253,7 +254,7 @@ function createStage(stage, i) {
     }),
   );
   floorLabel.rotation.x = -Math.PI / 2;
-  floorLabel.position.set(0, -0.09, stageWidth * 0.5 - 4);
+  floorLabel.position.set(0, -0.09, stageWidth * 0.5 - 7);
   group.add(floorLabel);
 }
 
@@ -263,16 +264,34 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   const a = stages[i].center;
   const b = stages[i + 1].center;
   const delta = new THREE.Vector3().subVectors(b, a);
-  const rawLength = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageLength + 2;
-  const length = Math.max(rawLength * 0.25, 7);
-  const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, 12), shared.floor);
-  bridge.position.set((a.x + b.x) / 2, -0.7, (a.z + b.z) / 2);
-  bridge.rotation.y = Math.atan2(delta.z, delta.x);
+  const centerDistance = Math.hypot(delta.x, delta.z);
+  const direction = delta.clone().setY(0).normalize();
+
+  const aSupport = Math.abs(direction.x) * (stageLength * 0.5) + Math.abs(direction.z) * (stageWidth * 0.5);
+  const bSupport = Math.abs(direction.x) * (stageLength * 0.5) + Math.abs(direction.z) * (stageWidth * 0.5);
+  const visibleGap = Math.max(centerDistance - aSupport - bSupport, 0);
+  const seamOverlap = 1.2;
+  const length = Math.max(visibleGap + seamOverlap * 2, 8);
+
+  const aEdge = a.clone().addScaledVector(direction, aSupport);
+  const bEdge = b.clone().addScaledVector(direction, -bSupport);
+  const bridgeCenter = aEdge.clone().lerp(bEdge, 0.5);
+
+  const bridgeWidth = 12;
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, bridgeWidth), shared.floor);
+  bridge.position.set(bridgeCenter.x, -0.7, bridgeCenter.z);
+  bridge.rotation.y = Math.atan2(direction.z, direction.x);
   bridge.material = bridge.material.clone();
   bridge.material.color.setHex(0xede7d8);
   bridge.receiveShadow = true;
   world.add(bridge);
   walkableMeshes.push(bridge);
+  bridgeZones.push({
+    center: bridgeCenter.clone(),
+    direction: direction.clone(),
+    length,
+    width: bridgeWidth,
+  });
 }
 
 function createNatureDecor() {
@@ -569,19 +588,14 @@ function keepPlayerOnStageOrBridge() {
   });
 
   const onBridge = (() => {
-    for (let i = 0; i < stages.length - 1; i += 1) {
-      const a = stages[i].center;
-      const b = stages[i + 1].center;
-      const abx = b.x - a.x;
-      const abz = b.z - a.z;
-      const apx = px - a.x;
-      const apz = pz - a.z;
-      const denom = abx * abx + abz * abz;
-      const t = THREE.MathUtils.clamp((apx * abx + apz * abz) / denom, 0, 1);
-      const cx = a.x + abx * t;
-      const cz = a.z + abz * t;
-      const distSq = (px - cx) ** 2 + (pz - cz) ** 2;
-      if (distSq <= 42) return true;
+    for (const zone of bridgeZones) {
+      const relX = px - zone.center.x;
+      const relZ = pz - zone.center.z;
+      const along = relX * zone.direction.x + relZ * zone.direction.z;
+      const side = relX * -zone.direction.z + relZ * zone.direction.x;
+      const withinLength = Math.abs(along) <= zone.length * 0.5 + 0.75;
+      const withinWidth = Math.abs(side) <= zone.width * 0.5 + 0.75;
+      if (withinLength && withinWidth) return true;
     }
     return false;
   })();
