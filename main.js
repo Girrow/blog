@@ -2,9 +2,9 @@ import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xf5f5f0);
-scene.fog = new THREE.Fog(0xf5f5f0, 28, 86);
+scene.fog = new THREE.Fog(0xf5f5f0, 40, 170);
 
-const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 180);
+const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 260);
 camera.position.set(0, 11, 13);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -37,7 +37,6 @@ const shared = {
   lip: new THREE.MeshStandardMaterial({ color: 0xd48b80, roughness: 0.5 }),
   bagStrap: new THREE.MeshStandardMaterial({ color: 0x161617, roughness: 0.36 }),
   watch: new THREE.MeshStandardMaterial({ color: 0x354a4d, roughness: 0.35, metalness: 0.25 }),
-  portal: new THREE.MeshStandardMaterial({ color: 0x67dbc6, emissive: 0x2db89e, emissiveIntensity: 0.9 }),
   easter: new THREE.MeshStandardMaterial({ color: 0xffb77d, emissive: 0xae4f20, emissiveIntensity: 0.5 }),
 };
 
@@ -83,7 +82,7 @@ function makeGridTexture() {
 }
 
 const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(170, 110),
+  new THREE.PlaneGeometry(260, 160),
   new THREE.MeshStandardMaterial({ map: makeGridTexture(), roughness: 1 }),
 );
 ground.rotation.x = -Math.PI / 2;
@@ -116,128 +115,89 @@ const posterTextures = [
 ];
 
 const stages = [
-  { name: 'Bus Stop', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
-  { name: 'Sticker Plaza', center: new THREE.Vector3(26, 0, 0), color: 0xf8ecff },
-  { name: 'Picnic Corner', center: new THREE.Vector3(52, 0, -6), color: 0xe8fff8 },
+  { name: '과거', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
+  { name: '현재', center: new THREE.Vector3(40, 0, 0), color: 0xf8ecff },
+  { name: '미래', center: new THREE.Vector3(80, 0, -6), color: 0xe8fff8 },
 ];
 
-const stageRadius = 11;
-const portals = [];
+const stageRadius = 16;
 const easterEggs = [];
-
-function createBus(stageGroup) {
-  const bus = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(5.8, 2.2, 2.8),
-    new THREE.MeshStandardMaterial({ color: 0x74e7d4, roughness: 0.65 }),
-  );
-  body.castShadow = true;
-  bus.add(body);
-
-  const roof = new THREE.Mesh(
-    new THREE.BoxGeometry(5.6, 0.8, 2.7),
-    new THREE.MeshStandardMaterial({ color: 0xfff3d6, roughness: 0.65 }),
-  );
-  roof.position.y = 1.35;
-  roof.castShadow = true;
-  bus.add(roof);
-
-  const windowMat = new THREE.MeshStandardMaterial({ color: 0x2f6f7a, roughness: 0.2, metalness: 0.3 });
-  for (let i = -2; i <= 2; i += 1) {
-    const w = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.65), windowMat);
-    w.position.set(i * 0.95, 0.5, 1.42);
-    bus.add(w);
-  }
-
-  for (const x of [-2, 2]) {
-    const wheel = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.45, 0.45, 0.34, 20),
-      new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.75 }),
-    );
-    wheel.rotation.z = Math.PI / 2;
-    wheel.position.set(x, -1.2, 1.4);
-    bus.add(wheel);
-
-    const wheel2 = wheel.clone();
-    wheel2.position.z = -1.4;
-    bus.add(wheel2);
-  }
-
-  bus.position.set(0, 0.75, 0);
-  bus.rotation.y = -0.2;
-  stageGroup.add(bus);
-}
 
 function createStage(stage, i) {
   const group = new THREE.Group();
   group.position.copy(stage.center);
   world.add(group);
 
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(stageRadius, stageRadius, 1.4, 42), shared.floor);
+  const floor = new THREE.Mesh(new THREE.CylinderGeometry(stageRadius, stageRadius, 1.4, 64), shared.floor);
   floor.receiveShadow = true;
   floor.position.y = -0.8;
   floor.material = floor.material.clone();
   floor.material.color.setHex(stage.color);
   group.add(floor);
 
+  const titleBoard = new THREE.Mesh(new THREE.BoxGeometry(6.8, 1.8, 0.5), shared.wall);
+  titleBoard.position.set(0, 3.7, -stageRadius + 1.2);
+  titleBoard.castShadow = true;
+  titleBoard.receiveShadow = true;
+  group.add(titleBoard);
+
+  const label = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: stickerTexture('#6f5cf7', stage.name), transparent: true }),
+  );
+  label.position.set(0, 0, 0.27);
+  label.scale.set(5.8, 1.6, 1);
+  titleBoard.add(label);
+
   const galleryPositions = [
-    [-7.1, 1.05, -4.8],
-    [-2.4, 1.05, -4.8],
-    [2.4, 1.05, -4.8],
-    [7.1, 1.05, -4.8],
-    [-4.7, 1.05, -7.8],
-    [0, 1.05, -7.8],
-    [4.7, 1.05, -7.8],
+    [-12.5, 1.4, -7],
+    [-4.2, 1.4, -7],
+    [4.2, 1.4, -7],
+    [12.5, 1.4, -7],
+    [-8.3, 1.4, -11.7],
+    [0, 1.4, -11.7],
+    [8.3, 1.4, -11.7],
   ];
 
   galleryPositions.forEach(([x, y, z], w) => {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.8, 3.2, 0.45), shared.wall);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(7.6, 4.4, 0.45), shared.wall);
     wall.position.set(x, y, z);
     wall.castShadow = true;
     wall.receiveShadow = true;
     group.add(wall);
 
     const poster = new THREE.Mesh(
-      new THREE.PlaneGeometry(3.1, 2),
+      new THREE.PlaneGeometry(6.2, 4),
       new THREE.MeshStandardMaterial({ map: posterTextures[(w + i * 2) % posterTextures.length], roughness: 0.66 }),
     );
-    poster.position.set(0, 0.1, 0.24);
+    poster.position.set(0, 0.2, 0.24);
     wall.add(poster);
 
-    const frame = new THREE.Mesh(new THREE.PlaneGeometry(3.35, 2.25), shared.posterFrame);
+    const frame = new THREE.Mesh(new THREE.PlaneGeometry(6.7, 4.5), shared.posterFrame);
     frame.position.z = -0.012;
     poster.add(frame);
 
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.65, 0.26), shared.posterStand);
-    stand.position.set(0, -2.35, 0);
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.3, 0.34), shared.posterStand);
+    stand.position.set(0, -3.3, 0);
     wall.add(stand);
   });
 
-  if (i < stages.length - 1) {
-    const portal = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.22, 18, 40), shared.portal);
-    portal.position.set(stageRadius - 2, 1.2, 0);
-    portal.rotation.y = Math.PI / 2;
-    portal.castShadow = true;
-    group.add(portal);
-    portals.push({ mesh: portal, from: i, to: i + 1 });
-  }
-
   const egg = new THREE.Mesh(new THREE.IcosahedronGeometry(0.45, 1), shared.easter);
-  egg.position.set(-stageRadius + 2.5, 0.8, 1.6);
+  egg.position.set(-stageRadius + 3.5, 0.8, 2.4);
   egg.castShadow = true;
   group.add(egg);
   easterEggs.push({ mesh: egg, stageIndex: i, found: false });
-
-  if (i === 0) createBus(group);
 }
 
 stages.forEach(createStage);
 
 for (let i = 0; i < stages.length - 1; i += 1) {
-  const bridge = new THREE.Mesh(new THREE.BoxGeometry(4, 0.7, 4), shared.floor);
   const a = stages[i].center;
   const b = stages[i + 1].center;
+  const delta = new THREE.Vector3().subVectors(b, a);
+  const length = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageRadius * 2 + 1.5;
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, 5), shared.floor);
   bridge.position.set((a.x + b.x) / 2, -0.7, (a.z + b.z) / 2);
+  bridge.rotation.y = Math.atan2(delta.z, delta.x);
   bridge.material = bridge.material.clone();
   bridge.material.color.setHex(0xede7d8);
   bridge.receiveShadow = true;
@@ -421,20 +381,44 @@ function handleMove(dt) {
 
 function clampToWorld() {
   player.position.y = 0;
-  player.position.x = THREE.MathUtils.clamp(player.position.x, -14, 64);
-  player.position.z = THREE.MathUtils.clamp(player.position.z, -22, 20);
+  player.position.x = THREE.MathUtils.clamp(player.position.x, -18, 96);
+  player.position.z = THREE.MathUtils.clamp(player.position.z, -28, 24);
 }
 
-function tryPortal() {
-  for (const portal of portals) {
-    const p = portal.mesh.getWorldPosition(new THREE.Vector3());
-    const d = player.position.distanceTo(p);
-    if (d < 2.7 && state.stage === portal.from) {
-      jumpToStage(portal.to);
-      return true;
+
+function keepPlayerOnStageOrBridge() {
+  const px = player.position.x;
+  const pz = player.position.z;
+
+  const onStage = stages.some((stage) => {
+    const dx = px - stage.center.x;
+    const dz = pz - stage.center.z;
+    return dx * dx + dz * dz <= stageRadius * stageRadius;
+  });
+
+  const onBridge = (() => {
+    for (let i = 0; i < stages.length - 1; i += 1) {
+      const a = stages[i].center;
+      const b = stages[i + 1].center;
+      const abx = b.x - a.x;
+      const abz = b.z - a.z;
+      const apx = px - a.x;
+      const apz = pz - a.z;
+      const denom = abx * abx + abz * abz;
+      const t = THREE.MathUtils.clamp((apx * abx + apz * abz) / denom, 0, 1);
+      const cx = a.x + abx * t;
+      const cz = a.z + abz * t;
+      const distSq = (px - cx) ** 2 + (pz - cz) ** 2;
+      if (distSq <= 8.5) return true;
     }
+    return false;
+  })();
+
+  if (!onStage && !onBridge) {
+    state.moveTarget = null;
+    setActor('Idle');
+    setHint('스테이지 또는 다리 위에서만 이동할 수 있어요.');
   }
-  return false;
 }
 
 function tryEgg() {
@@ -453,7 +437,7 @@ function tryEgg() {
   return false;
 }
 
-const cameraOffset = new THREE.Vector3(-8.5, 12, 9.5);
+const cameraOffset = new THREE.Vector3(-10, 14, 11);
 const cameraTarget = new THREE.Vector3();
 const desiredCamera = new THREE.Vector3();
 
@@ -470,23 +454,18 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  const interactiveMeshes = [...portals.map((p) => p.mesh), ...easterEggs.map((egg) => egg.mesh), ground];
+  const interactiveMeshes = [...easterEggs.map((egg) => egg.mesh), ground];
   const hit = raycaster.intersectObjects(interactiveMeshes, true)[0];
   if (!hit) return;
 
   const hitObj = hit.object;
-  if (portals.some((p) => p.mesh === hitObj || p.mesh.children.includes(hitObj))) {
-    if (!tryPortal()) setHint('포털 근처로 이동한 뒤 다시 눌러보세요.');
-    return;
-  }
-
   if (easterEggs.some((egg) => egg.mesh === hitObj || egg.mesh.children.includes(hitObj))) {
     if (!tryEgg()) setHint('오브젝트 근처로 이동한 뒤 다시 눌러보세요.');
     return;
   }
 
   state.moveTarget = new THREE.Vector3(hit.point.x, 0, hit.point.z);
-  setHint('이동 중... 포털/오브젝트를 누르면 상호작용할 수 있어요.');
+  setHint('이동 중... 스테이지와 다리 안에서만 이동할 수 있어요.');
 });
 
 const clock = new THREE.Clock();
@@ -496,6 +475,7 @@ function animate() {
 
   handleMove(dt);
   clampToWorld();
+  keepPlayerOnStageOrBridge();
   updateStage();
   updateCamera(dt);
 
@@ -503,10 +483,6 @@ function animate() {
     player.position.y = Math.sin(t * 3.2) * 0.03;
   }
 
-  portals.forEach((p, i) => {
-    p.mesh.rotation.z = t * (0.9 + i * 0.08);
-    p.mesh.material.emissiveIntensity = 0.6 + Math.sin(t * 2.2 + i) * 0.25;
-  });
 
   easterEggs.forEach((egg, i) => {
     egg.mesh.position.y = 0.8 + Math.sin(t * 1.7 + i) * 0.18;
