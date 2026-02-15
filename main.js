@@ -115,13 +115,13 @@ const posterTextures = [
 ];
 
 const stages = [
-  { name: '과거', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
-  { name: '현재', center: new THREE.Vector3(40, 0, 0), color: 0xf8ecff },
-  { name: '미래', center: new THREE.Vector3(80, 0, -6), color: 0xe8fff8 },
+  { name: 'past', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
+  { name: 'present', center: new THREE.Vector3(126, 0, 0), color: 0xf8ecff },
+  { name: 'future', center: new THREE.Vector3(252, 0, -16), color: 0xe8fff8 },
 ];
 
-const stageRadius = 16;
-const easterEggs = [];
+const stageRadius = 48;
+const posterMeshes = [];
 
 function createStage(stage, i) {
   const group = new THREE.Group();
@@ -135,32 +135,21 @@ function createStage(stage, i) {
   floor.material.color.setHex(stage.color);
   group.add(floor);
 
-  const titleBoard = new THREE.Mesh(new THREE.BoxGeometry(6.8, 1.8, 0.5), shared.wall);
-  titleBoard.position.set(0, 3.7, -stageRadius + 1.2);
-  titleBoard.castShadow = true;
-  titleBoard.receiveShadow = true;
-  group.add(titleBoard);
-
-  const label = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: stickerTexture('#6f5cf7', stage.name), transparent: true }),
-  );
-  label.position.set(0, 0, 0.27);
-  label.scale.set(5.8, 1.6, 1);
-  titleBoard.add(label);
-
   const galleryPositions = [
-    [-12.5, 1.4, -7],
-    [-4.2, 1.4, -7],
-    [4.2, 1.4, -7],
-    [12.5, 1.4, -7],
-    [-8.3, 1.4, -11.7],
-    [0, 1.4, -11.7],
-    [8.3, 1.4, -11.7],
+    [-25, 1.4, -28, 0.33],
+    [0, 1.4, -32, 0],
+    [25, 1.4, -28, -0.33],
+    [-31, 1.4, -4, Math.PI / 2],
+    [31, 1.4, -4, -Math.PI / 2],
+    [-20, 1.4, 23, Math.PI * 0.86],
+    [0, 1.4, 31, Math.PI],
+    [20, 1.4, 23, -Math.PI * 0.86],
   ];
 
-  galleryPositions.forEach(([x, y, z], w) => {
+  galleryPositions.forEach(([x, y, z, ry], w) => {
     const wall = new THREE.Mesh(new THREE.BoxGeometry(7.6, 4.4, 0.45), shared.wall);
     wall.position.set(x, y, z);
+    wall.rotation.y = ry;
     wall.castShadow = true;
     wall.receiveShadow = true;
     group.add(wall);
@@ -171,6 +160,8 @@ function createStage(stage, i) {
     );
     poster.position.set(0, 0.2, 0.24);
     wall.add(poster);
+    poster.userData.isPoster = true;
+    posterMeshes.push(poster);
 
     const frame = new THREE.Mesh(new THREE.PlaneGeometry(6.7, 4.5), shared.posterFrame);
     frame.position.z = -0.012;
@@ -181,11 +172,12 @@ function createStage(stage, i) {
     wall.add(stand);
   });
 
-  const egg = new THREE.Mesh(new THREE.IcosahedronGeometry(0.45, 1), shared.easter);
-  egg.position.set(-stageRadius + 3.5, 0.8, 2.4);
-  egg.castShadow = true;
-  group.add(egg);
-  easterEggs.push({ mesh: egg, stageIndex: i, found: false });
+  const floorLabel = new THREE.Sprite(
+    new THREE.SpriteMaterial({ map: stickerTexture('#8575f7', stage.name), transparent: true }),
+  );
+  floorLabel.position.set(0, 0.06, stageRadius - 8);
+  floorLabel.scale.set(20, 4.2, 1);
+  group.add(floorLabel);
 }
 
 stages.forEach(createStage);
@@ -194,8 +186,8 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   const a = stages[i].center;
   const b = stages[i + 1].center;
   const delta = new THREE.Vector3().subVectors(b, a);
-  const length = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageRadius * 2 + 1.5;
-  const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, 5), shared.floor);
+  const length = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageRadius * 2 + 2;
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, 12), shared.floor);
   bridge.position.set((a.x + b.x) / 2, -0.7, (a.z + b.z) / 2);
   bridge.rotation.y = Math.atan2(delta.z, delta.x);
   bridge.material = bridge.material.clone();
@@ -311,6 +303,8 @@ const state = {
   stage: 0,
   actor: 'Idle',
   moveTarget: null,
+  focusedPoster: null,
+  canRestoreFocus: false,
 };
 
 function setActor(next) {
@@ -340,11 +334,12 @@ function updateStage() {
 }
 
 function jumpToStage(index) {
+  restorePosterFocus();
   player.position.copy(stages[index].center).add(new THREE.Vector3(-2, 0, 0));
   state.moveTarget = null;
   updateStage();
   setActor('Idle');
-  setHint(`${stages[index].name}로 이동했어요. 주변 오브젝트를 눌러보세요.`);
+  setHint(`${stages[index].name}로 이동했어요. 그림 가까이에서 클릭하면 확대돼요.`);
 }
 
 stages.forEach((stage, index) => {
@@ -381,8 +376,8 @@ function handleMove(dt) {
 
 function clampToWorld() {
   player.position.y = 0;
-  player.position.x = THREE.MathUtils.clamp(player.position.x, -18, 96);
-  player.position.z = THREE.MathUtils.clamp(player.position.z, -28, 24);
+  player.position.x = THREE.MathUtils.clamp(player.position.x, -52, 306);
+  player.position.z = THREE.MathUtils.clamp(player.position.z, -72, 58);
 }
 
 
@@ -409,7 +404,7 @@ function keepPlayerOnStageOrBridge() {
       const cx = a.x + abx * t;
       const cz = a.z + abz * t;
       const distSq = (px - cx) ** 2 + (pz - cz) ** 2;
-      if (distSq <= 8.5) return true;
+      if (distSq <= 42) return true;
     }
     return false;
   })();
@@ -421,27 +416,41 @@ function keepPlayerOnStageOrBridge() {
   }
 }
 
-function tryEgg() {
-  for (const egg of easterEggs) {
-    const p = egg.mesh.getWorldPosition(new THREE.Vector3());
-    const d = player.position.distanceTo(p);
-    if (d < 2 && !egg.found) {
-      egg.found = true;
-      egg.mesh.material = egg.mesh.material.clone();
-      egg.mesh.material.color.setHex(0x8cffd5);
-      egg.mesh.material.emissive.setHex(0x2abf96);
-      setHint(`이스터에그 발견! (${stages[egg.stageIndex].name})`);
-      return true;
-    }
-  }
-  return false;
-}
-
 const cameraOffset = new THREE.Vector3(-10, 14, 11);
 const cameraTarget = new THREE.Vector3();
 const desiredCamera = new THREE.Vector3();
+const posterFocusPosition = new THREE.Vector3();
+const posterLookTarget = new THREE.Vector3();
+
+function focusPoster(poster) {
+  state.focusedPoster = poster;
+  state.canRestoreFocus = false;
+  state.moveTarget = null;
+  setActor('Idle');
+  setHint('그림 확대 보기 중: 화면을 다시 클릭하면 원래 시점으로 돌아가요.');
+  setTimeout(() => {
+    state.canRestoreFocus = true;
+  }, 150);
+}
+
+function restorePosterFocus() {
+  if (!state.focusedPoster) return;
+  state.focusedPoster = null;
+  state.canRestoreFocus = false;
+  setHint('이동 중... 스테이지와 다리 안에서만 이동할 수 있어요.');
+}
 
 function updateCamera(dt) {
+  if (state.focusedPoster) {
+    const focused = state.focusedPoster;
+    focused.getWorldPosition(posterLookTarget);
+    const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(focused.getWorldQuaternion(new THREE.Quaternion()));
+    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, 1.8).add(new THREE.Vector3(0, 0.15, 0));
+    camera.position.lerp(posterFocusPosition, 1 - Math.exp(-dt * 10));
+    camera.lookAt(posterLookTarget);
+    return;
+  }
+
   cameraTarget.copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
   desiredCamera.copy(cameraTarget).add(cameraOffset);
 
@@ -450,17 +459,26 @@ function updateCamera(dt) {
 }
 
 renderer.domElement.addEventListener('pointerup', (e) => {
+  if (state.focusedPoster && state.canRestoreFocus) {
+    restorePosterFocus();
+    return;
+  }
+
   pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  const interactiveMeshes = [...easterEggs.map((egg) => egg.mesh), ground];
+  const interactiveMeshes = [...posterMeshes, ground];
   const hit = raycaster.intersectObjects(interactiveMeshes, true)[0];
   if (!hit) return;
 
   const hitObj = hit.object;
-  if (easterEggs.some((egg) => egg.mesh === hitObj || egg.mesh.children.includes(hitObj))) {
-    if (!tryEgg()) setHint('오브젝트 근처로 이동한 뒤 다시 눌러보세요.');
+  if (hitObj.userData.isPoster) {
+    if (player.position.distanceTo(hitObj.getWorldPosition(new THREE.Vector3())) < 10) {
+      focusPoster(hitObj);
+    } else {
+      setHint('그림을 확대하려면 조금 더 가까이 이동해 주세요.');
+    }
     return;
   }
 
@@ -483,11 +501,6 @@ function animate() {
     player.position.y = Math.sin(t * 3.2) * 0.03;
   }
 
-
-  easterEggs.forEach((egg, i) => {
-    egg.mesh.position.y = 0.8 + Math.sin(t * 1.7 + i) * 0.18;
-    egg.mesh.rotation.y = t * 0.8;
-  });
 
   warmLight.position.set(Math.sin(t * 0.8) * 8 + stages[state.stage].center.x, 4.5, Math.cos(t * 0.7) * 5);
   renderer.render(scene, camera);
