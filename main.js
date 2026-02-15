@@ -97,29 +97,19 @@ ground.position.y = -0.82;
 ground.receiveShadow = true;
 world.add(ground);
 
-function stickerTexture(bg, icon) {
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 160;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, c.width, c.height);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '700 56px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(icon, c.width / 2, c.height / 2 + 8);
-  return new THREE.CanvasTexture(c);
-}
-
+const textureLoader = new THREE.TextureLoader();
 const posterTextures = [
-  stickerTexture('#ffd3da', '🐥'),
-  stickerTexture('#c7ecff', '🚌'),
-  stickerTexture('#ffe7a7', '⭐'),
-  stickerTexture('#d8ffd6', '💚'),
-  stickerTexture('#f3d7ff', '🎀'),
-  stickerTexture('#ffcfae', '🎉'),
-];
+  'static/stickers/chick.svg',
+  'static/stickers/bus.svg',
+  'static/stickers/star.svg',
+  'static/stickers/heart.svg',
+  'static/stickers/ribbon.svg',
+  'static/stickers/confetti.svg',
+].map((path) => {
+  const texture = textureLoader.load(path);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+});
 
 const stages = [
   { name: 'past', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
@@ -273,7 +263,8 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   const a = stages[i].center;
   const b = stages[i + 1].center;
   const delta = new THREE.Vector3().subVectors(b, a);
-  const length = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageLength + 2;
+  const rawLength = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageLength + 2;
+  const length = Math.max(rawLength * 0.25, 7);
   const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, 12), shared.floor);
   bridge.position.set((a.x + b.x) / 2, -0.7, (a.z + b.z) / 2);
   bridge.rotation.y = Math.atan2(delta.z, delta.x);
@@ -297,12 +288,17 @@ function createNatureDecor() {
   const treeLeafMat = new THREE.MeshStandardMaterial({ color: 0x5d9f4d, roughness: 0.84 });
 
   const treeBands = [
-    { x: -42, zList: [-44, -32, 32, 44] },
-    { x: 42, zList: [-44, -32, 32, 44] },
-    { x: 84, zList: [-44, 44] },
-    { x: 168, zList: [-44, 44] },
-    { x: 252, zList: [-44, -32, 32, 44] },
-    { x: 294, zList: [-44, -32, 32, 44] },
+    { x: -60, zList: [-56, -46, -36, 36, 46, 56] },
+    { x: -42, zList: [-50, -40, -30, 30, 40, 50] },
+    { x: -24, zList: [-54, -44, 44, 54] },
+    { x: 42, zList: [-54, -44, -34, 34, 44, 54] },
+    { x: 84, zList: [-56, -46, -36, 36, 46, 56] },
+    { x: 126, zList: [-54, -44, 44, 54] },
+    { x: 168, zList: [-56, -46, -36, 36, 46, 56] },
+    { x: 210, zList: [-54, -44, 44, 54] },
+    { x: 252, zList: [-56, -46, -36, 36, 46, 56] },
+    { x: 294, zList: [-54, -44, -34, 34, 44, 54] },
+    { x: 316, zList: [-50, -40, 40, 50] },
   ];
 
   treeBands.forEach((band, bandIndex) => {
@@ -331,6 +327,48 @@ function createNatureDecor() {
       world.add(tree);
     });
   });
+
+  const bushMat = new THREE.MeshStandardMaterial({ color: 0x6daf5f, roughness: 0.9 });
+  for (let x = -64; x <= 320; x += 20) {
+    for (const z of [-62, -58, 58, 62]) {
+      const bush = new THREE.Mesh(new THREE.SphereGeometry(1.9, 14, 12), bushMat);
+      bush.position.set(x + ((x + z) % 3), 0.48, z + ((x * 0.17) % 1.8));
+      bush.scale.set(1.25, 0.72, 1.05);
+      bush.castShadow = true;
+      bush.receiveShadow = true;
+      world.add(bush);
+    }
+  }
+
+  const flowerPalette = [0xff7fb2, 0xffd166, 0xa0ddff, 0xc7b8ff, 0xfff3a0];
+  for (let i = 0; i < 220; i += 1) {
+    const flower = new THREE.Mesh(
+      new THREE.CircleGeometry(0.18 + (i % 3) * 0.03, 8),
+      new THREE.MeshStandardMaterial({
+        color: flowerPalette[i % flowerPalette.length],
+        emissive: flowerPalette[(i + 2) % flowerPalette.length],
+        emissiveIntensity: 0.08,
+        roughness: 0.6,
+      }),
+    );
+    flower.rotation.x = -Math.PI / 2;
+    const side = i % 2 === 0 ? 1 : -1;
+    const spreadX = -58 + (i * 9.4) % 374;
+    const spreadZ = side * (35 + (i * 7.8) % 34);
+    flower.position.set(spreadX, -0.8, spreadZ);
+    world.add(flower);
+  }
+
+  const pebbleMat = new THREE.MeshStandardMaterial({ color: 0xb9b6ac, roughness: 0.95 });
+  for (let i = 0; i < 160; i += 1) {
+    const pebble = new THREE.Mesh(new THREE.SphereGeometry(0.34, 10, 8), pebbleMat);
+    pebble.position.set(-54 + (i * 8.6) % 362, -0.76, (i % 2 === 0 ? -1 : 1) * (25 + (i * 4.7) % 44));
+    pebble.scale.set(1.4, 0.48, 1.1);
+    pebble.rotation.y = i * 0.37;
+    pebble.castShadow = true;
+    pebble.receiveShadow = true;
+    world.add(pebble);
+  }
 }
 
 createNatureDecor();
