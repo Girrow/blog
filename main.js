@@ -27,11 +27,16 @@ const shared = {
   floor: new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.95 }),
   wall: new THREE.MeshStandardMaterial({ color: 0xfff9f0, roughness: 0.88 }),
   posterFrame: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42 }),
+  posterStand: new THREE.MeshStandardMaterial({ color: 0xc7bba8, roughness: 0.75 }),
   skin: new THREE.MeshStandardMaterial({ color: 0xf2c49a, roughness: 0.52 }),
-  hair: new THREE.MeshStandardMaterial({ color: 0x2d221d, roughness: 0.7 }),
-  shirt: new THREE.MeshStandardMaterial({ color: 0x4d8bff, roughness: 0.48 }),
+  hair: new THREE.MeshStandardMaterial({ color: 0x241816, roughness: 0.72 }),
+  shirt: new THREE.MeshStandardMaterial({ color: 0x202228, roughness: 0.65 }),
   pants: new THREE.MeshStandardMaterial({ color: 0x2d3b66, roughness: 0.6 }),
   shoe: new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.72 }),
+  eye: new THREE.MeshStandardMaterial({ color: 0x171717, roughness: 0.36 }),
+  lip: new THREE.MeshStandardMaterial({ color: 0xd48b80, roughness: 0.5 }),
+  bagStrap: new THREE.MeshStandardMaterial({ color: 0x161617, roughness: 0.36 }),
+  watch: new THREE.MeshStandardMaterial({ color: 0x354a4d, roughness: 0.35, metalness: 0.25 }),
   portal: new THREE.MeshStandardMaterial({ color: 0x67dbc6, emissive: 0x2db89e, emissiveIntensity: 0.9 }),
   easter: new THREE.MeshStandardMaterial({ color: 0xffb77d, emissive: 0xae4f20, emissiveIntensity: 0.5 }),
 };
@@ -175,26 +180,38 @@ function createStage(stage, i) {
   floor.material.color.setHex(stage.color);
   group.add(floor);
 
-  for (let w = 0; w < 8; w += 1) {
-    const ang = (w / 8) * Math.PI * 2;
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.6, 0.4), shared.wall);
-    wall.position.set(Math.cos(ang) * (stageRadius - 1), 0.9, Math.sin(ang) * (stageRadius - 1));
-    wall.lookAt(0, 0.9, 0);
+  const galleryPositions = [
+    [-7.1, 1.05, -4.8],
+    [-2.4, 1.05, -4.8],
+    [2.4, 1.05, -4.8],
+    [7.1, 1.05, -4.8],
+    [-4.7, 1.05, -7.8],
+    [0, 1.05, -7.8],
+    [4.7, 1.05, -7.8],
+  ];
+
+  galleryPositions.forEach(([x, y, z], w) => {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(3.8, 3.2, 0.45), shared.wall);
+    wall.position.set(x, y, z);
     wall.castShadow = true;
     wall.receiveShadow = true;
     group.add(wall);
 
     const poster = new THREE.Mesh(
-      new THREE.PlaneGeometry(1.9, 1.2),
+      new THREE.PlaneGeometry(3.1, 2),
       new THREE.MeshStandardMaterial({ map: posterTextures[(w + i * 2) % posterTextures.length], roughness: 0.66 }),
     );
-    poster.position.set(0, 0, 0.22);
+    poster.position.set(0, 0.1, 0.24);
     wall.add(poster);
 
-    const frame = new THREE.Mesh(new THREE.PlaneGeometry(2.05, 1.35), shared.posterFrame);
-    frame.position.z = -0.01;
+    const frame = new THREE.Mesh(new THREE.PlaneGeometry(3.35, 2.25), shared.posterFrame);
+    frame.position.z = -0.012;
     poster.add(frame);
-  }
+
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.26, 1.65, 0.26), shared.posterStand);
+    stand.position.set(0, -2.35, 0);
+    wall.add(stand);
+  });
 
   if (i < stages.length - 1) {
     const portal = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.22, 18, 40), shared.portal);
@@ -230,28 +247,67 @@ for (let i = 0; i < stages.length - 1; i += 1) {
 function createMaleCharacter() {
   const character = new THREE.Group();
 
-  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.92, 0.44), shared.shirt);
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.31, 0.74, 10, 14), shared.shirt);
   torso.position.y = 1.36;
   character.add(torso);
+
+  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 12, 24), shared.shirt);
+  collar.position.set(0, 1.7, 0.11);
+  collar.rotation.x = Math.PI / 2.1;
+  character.add(collar);
 
   const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 10), shared.skin);
   neck.position.y = 1.92;
   character.add(neck);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 20), shared.skin);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 22, 22), shared.skin);
   head.position.y = 2.2;
+  head.scale.set(1, 1.05, 0.94);
   character.add(head);
 
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.35, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.58), shared.hair);
-  hair.position.y = 2.3;
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.36, 22, 22, 0, Math.PI * 2, 0, Math.PI * 0.68), shared.hair);
+  hair.position.y = 2.32;
+  hair.scale.set(1.06, 1.02, 1);
   character.add(hair);
 
+  const fringe = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 14), shared.hair);
+  fringe.position.set(0.03, 2.29, 0.28);
+  fringe.scale.set(1.35, 0.75, 0.72);
+  character.add(fringe);
+
+  const earL = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), shared.skin);
+  earL.position.set(-0.34, 2.14, 0.02);
+  earL.scale.set(0.9, 1.2, 0.8);
+  character.add(earL);
+
+  const earR = earL.clone();
+  earR.position.x *= -1;
+  character.add(earR);
+
   for (const side of [-1, 1]) {
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.74, 0.2), shared.shirt);
-    arm.position.set(side * 0.54, 1.35, 0);
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 12), shared.eye);
+    eye.position.set(side * 0.1, 2.22, 0.3);
+    eye.scale.set(1.6, 0.7, 0.8);
+    character.add(eye);
+  }
+
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.11, 10), shared.skin);
+  nose.position.set(0, 2.12, 0.33);
+  nose.rotation.x = Math.PI / 2;
+  character.add(nose);
+
+  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.013, 10, 16, Math.PI), shared.lip);
+  mouth.position.set(0, 2.03, 0.31);
+  mouth.rotation.z = Math.PI;
+  character.add(mouth);
+
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 0.58, 8, 12), shared.shirt);
+    arm.position.set(side * 0.42, 1.35, 0.02);
+    arm.rotation.z = side * 0.23;
     character.add(arm);
 
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.26), shared.pants);
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.56, 8, 12), shared.pants);
     leg.position.set(side * 0.16, 0.66, 0);
     character.add(leg);
 
@@ -259,6 +315,22 @@ function createMaleCharacter() {
     shoe.position.set(side * 0.16, 0.2, 0.05);
     character.add(shoe);
   }
+
+  const bagStrap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.45, 0.05), shared.bagStrap);
+  bagStrap.position.set(0.09, 1.43, 0.2);
+  bagStrap.rotation.z = 0.66;
+  bagStrap.rotation.y = -0.24;
+  character.add(bagStrap);
+
+  const bagTop = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.16), shared.bagStrap);
+  bagTop.position.set(0.46, 1.64, -0.02);
+  bagTop.rotation.y = 0.15;
+  character.add(bagTop);
+
+  const watchBand = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.018, 10, 18), shared.watch);
+  watchBand.position.set(-0.45, 1.06, 0.02);
+  watchBand.rotation.y = Math.PI / 2;
+  character.add(watchBand);
 
   character.traverse((obj) => {
     if (obj.isMesh) {
