@@ -120,8 +120,30 @@ const stages = [
   { name: 'future', center: new THREE.Vector3(252, 0, -16), color: 0xe8fff8 },
 ];
 
-const stageRadius = 48;
+const stageRadius = 32;
 const posterMeshes = [];
+
+function createFloorLabelTexture(text) {
+  const c = document.createElement('canvas');
+  c.width = 512;
+  c.height = 192;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#8575f7';
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  let fontSize = 84;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  while (fontSize > 42) {
+    ctx.font = `700 ${fontSize}px sans-serif`;
+    if (ctx.measureText(text).width <= c.width - 48) break;
+    fontSize -= 4;
+  }
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, c.width / 2, c.height / 2 + 4);
+  return new THREE.CanvasTexture(c);
+}
 
 function createStage(stage, i) {
   const group = new THREE.Group();
@@ -135,48 +157,48 @@ function createStage(stage, i) {
   floor.material.color.setHex(stage.color);
   group.add(floor);
 
-  const galleryPositions = [
-    [-25, 1.4, -28, 0.33],
-    [0, 1.4, -32, 0],
-    [25, 1.4, -28, -0.33],
-    [-31, 1.4, -4, Math.PI / 2],
-    [31, 1.4, -4, -Math.PI / 2],
-    [-20, 1.4, 23, Math.PI * 0.86],
-    [0, 1.4, 31, Math.PI],
-    [20, 1.4, 23, -Math.PI * 0.86],
-  ];
+  const galleryCount = 8;
+  const galleryRadius = stageRadius - 7;
 
-  galleryPositions.forEach(([x, y, z, ry], w) => {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(7.6, 4.4, 0.45), shared.wall);
-    wall.position.set(x, y, z);
-    wall.rotation.y = ry;
+  for (let w = 0; w < galleryCount; w += 1) {
+    const angle = (Math.PI * 2 * w) / galleryCount + Math.PI / 8;
+    const x = Math.cos(angle) * galleryRadius;
+    const z = Math.sin(angle) * galleryRadius;
+
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(14.8, 9, 0.5), shared.wall);
+    wall.position.set(x, 3.6, z);
+    wall.rotation.y = Math.atan2(-x, -z);
     wall.castShadow = true;
     wall.receiveShadow = true;
     group.add(wall);
 
     const poster = new THREE.Mesh(
-      new THREE.PlaneGeometry(6.2, 4),
-      new THREE.MeshStandardMaterial({ map: posterTextures[(w + i * 2) % posterTextures.length], roughness: 0.66 }),
+      new THREE.PlaneGeometry(12.4, 8),
+      new THREE.MeshStandardMaterial({
+        map: posterTextures[(w + i * 2) % posterTextures.length],
+        roughness: 0.66,
+        side: THREE.DoubleSide,
+      }),
     );
-    poster.position.set(0, 0.2, 0.24);
+    poster.position.set(0, 0.28, 0.28);
     wall.add(poster);
     poster.userData.isPoster = true;
     posterMeshes.push(poster);
 
-    const frame = new THREE.Mesh(new THREE.PlaneGeometry(6.7, 4.5), shared.posterFrame);
+    const frame = new THREE.Mesh(new THREE.PlaneGeometry(13.4, 9), shared.posterFrame);
     frame.position.z = -0.012;
     poster.add(frame);
 
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.34, 2.3, 0.34), shared.posterStand);
-    stand.position.set(0, -3.3, 0);
+    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.42, 3.8, 0.42), shared.posterStand);
+    stand.position.set(0, -6.1, 0);
     wall.add(stand);
-  });
+  }
 
   const floorLabel = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: stickerTexture('#8575f7', stage.name), transparent: true }),
+    new THREE.SpriteMaterial({ map: createFloorLabelTexture(stage.name), transparent: true }),
   );
   floorLabel.position.set(0, 0.06, stageRadius - 8);
-  floorLabel.scale.set(20, 4.2, 1);
+  floorLabel.scale.set(24, 6.2, 1);
   group.add(floorLabel);
 }
 
@@ -369,7 +391,7 @@ function handleMove(dt) {
   }
 
   moveDirection.normalize();
-  player.position.addScaledVector(moveDirection, dt * 5.7);
+  player.position.addScaledVector(moveDirection, dt * 6.84);
   player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
   setActor('Run');
 }
