@@ -130,6 +130,7 @@ const stages = [
 const stageLength = 72;
 const stageWidth = 24;
 const posterMeshes = [];
+const walkableMeshes = [];
 
 const sparkleCount = 480;
 const sparkleGeo = new THREE.BufferGeometry();
@@ -183,6 +184,7 @@ function createStage(stage, i) {
   floor.material = floor.material.clone();
   floor.material.color.setHex(stage.color);
   group.add(floor);
+  walkableMeshes.push(floor);
 
   const framesPerSide = 5;
   const galleryScale = 0.8;
@@ -279,7 +281,59 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   bridge.material.color.setHex(0xede7d8);
   bridge.receiveShadow = true;
   world.add(bridge);
+  walkableMeshes.push(bridge);
 }
+
+function createNatureDecor() {
+  const grassAreaGeo = new THREE.PlaneGeometry(340, 220);
+  const grassAreaMat = new THREE.MeshStandardMaterial({ color: 0x80c56f, roughness: 0.96, metalness: 0.02 });
+  const grassArea = new THREE.Mesh(grassAreaGeo, grassAreaMat);
+  grassArea.rotation.x = -Math.PI / 2;
+  grassArea.position.y = -0.86;
+  grassArea.receiveShadow = true;
+  world.add(grassArea);
+
+  const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x7f5638, roughness: 0.92 });
+  const treeLeafMat = new THREE.MeshStandardMaterial({ color: 0x5d9f4d, roughness: 0.84 });
+
+  const treeBands = [
+    { x: -42, zList: [-44, -32, 32, 44] },
+    { x: 42, zList: [-44, -32, 32, 44] },
+    { x: 84, zList: [-44, 44] },
+    { x: 168, zList: [-44, 44] },
+    { x: 252, zList: [-44, -32, 32, 44] },
+    { x: 294, zList: [-44, -32, 32, 44] },
+  ];
+
+  treeBands.forEach((band, bandIndex) => {
+    band.zList.forEach((z, treeIndex) => {
+      const tree = new THREE.Group();
+      const jitter = (bandIndex + treeIndex * 0.5) % 1;
+
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.54, 3.4, 8), treeTrunkMat);
+      trunk.position.y = 0.85;
+      trunk.castShadow = true;
+      trunk.receiveShadow = true;
+      tree.add(trunk);
+
+      const leafLower = new THREE.Mesh(new THREE.SphereGeometry(1.82, 14, 12), treeLeafMat);
+      leafLower.position.y = 2.95;
+      leafLower.scale.set(1.14, 0.92, 1.04);
+      leafLower.castShadow = true;
+      tree.add(leafLower);
+
+      const leafUpper = new THREE.Mesh(new THREE.SphereGeometry(1.44, 14, 12), treeLeafMat);
+      leafUpper.position.y = 4.05;
+      leafUpper.castShadow = true;
+      tree.add(leafUpper);
+
+      tree.position.set(band.x + jitter * 2.8, 0, z + jitter * 2.5);
+      world.add(tree);
+    });
+  });
+}
+
+createNatureDecor();
 
 function createMaleCharacter() {
   const character = new THREE.Group();
@@ -344,12 +398,12 @@ function createMaleCharacter() {
     arm.rotation.z = side * 0.23;
     character.add(arm);
 
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.56, 8, 12), shared.pants);
-    leg.position.set(side * 0.16, 0.66, 0);
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.34, 8, 12), shared.pants);
+    leg.position.set(side * 0.16, 0.76, 0);
     character.add(leg);
 
     const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.44), shared.shoe);
-    shoe.position.set(side * 0.16, 0.2, 0.05);
+    shoe.position.set(side * 0.16, 0.29, 0.05);
     character.add(shoe);
   }
 
@@ -553,7 +607,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
 
-  const interactiveMeshes = [...posterMeshes, ground];
+  const interactiveMeshes = [...posterMeshes, ...walkableMeshes];
   const hit = raycaster.intersectObjects(interactiveMeshes, true)[0];
   if (!hit) return;
 
