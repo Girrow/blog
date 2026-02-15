@@ -1,8 +1,8 @@
 import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xf5f5f0);
-scene.fog = new THREE.Fog(0xf5f5f0, 40, 170);
+scene.background = new THREE.Color(0xb8c8ff);
+scene.fog = new THREE.Fog(0xb8c8ff, 32, 220);
 
 const camera = new THREE.PerspectiveCamera(58, window.innerWidth / window.innerHeight, 0.1, 260);
 camera.position.set(0, 11, 13);
@@ -24,9 +24,9 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
 const shared = {
-  floor: new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.95 }),
-  wall: new THREE.MeshStandardMaterial({ color: 0xfff9f0, roughness: 0.88 }),
-  posterFrame: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42 }),
+  floor: new THREE.MeshStandardMaterial({ color: 0xe9ddff, roughness: 0.88, metalness: 0.05 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xfff6ff, roughness: 0.72 }),
+  posterFrame: new THREE.MeshStandardMaterial({ color: 0xf5d09d, roughness: 0.32, metalness: 0.45 }),
   posterStand: new THREE.MeshStandardMaterial({ color: 0xc7bba8, roughness: 0.75 }),
   skin: new THREE.MeshStandardMaterial({ color: 0xf2c49a, roughness: 0.52 }),
   hair: new THREE.MeshStandardMaterial({ color: 0x241816, roughness: 0.72 }),
@@ -43,14 +43,17 @@ const shared = {
 const world = new THREE.Group();
 scene.add(world);
 
-const ambient = new THREE.AmbientLight(0xffffff, 0.8);
+const ambient = new THREE.AmbientLight(0xfff4ff, 0.92);
 scene.add(ambient);
 const mainLight = new THREE.DirectionalLight(0xffffff, 1.05);
 mainLight.position.set(6, 14, 5);
 mainLight.castShadow = true;
 mainLight.shadow.mapSize.set(1024, 1024);
 scene.add(mainLight);
-const warmLight = new THREE.PointLight(0xffcd99, 22, 30, 2);
+const skyFill = new THREE.HemisphereLight(0xd6dcff, 0xffdcb4, 0.6);
+scene.add(skyFill);
+
+const warmLight = new THREE.PointLight(0xffb8f7, 28, 42, 1.8);
 warmLight.position.set(0, 5, 0);
 scene.add(warmLight);
 
@@ -59,9 +62,13 @@ function makeGridTexture() {
   canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#f9f9f7';
+  const grad = ctx.createLinearGradient(0, 0, 512, 512);
+  grad.addColorStop(0, '#fde9ff');
+  grad.addColorStop(0.5, '#efe2ff');
+  grad.addColorStop(1, '#dff1ff');
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 512);
-  ctx.strokeStyle = '#e8e6df';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
   ctx.lineWidth = 1;
   for (let i = 0; i <= 512; i += 24) {
     ctx.beginPath();
@@ -83,7 +90,7 @@ function makeGridTexture() {
 
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(260, 160),
-  new THREE.MeshStandardMaterial({ map: makeGridTexture(), roughness: 1 }),
+  new THREE.MeshStandardMaterial({ map: makeGridTexture(), roughness: 0.94, metalness: 0.04 }),
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.82;
@@ -117,12 +124,27 @@ const posterTextures = [
 const stages = [
   { name: 'past', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
   { name: 'present', center: new THREE.Vector3(126, 0, 0), color: 0xf8ecff },
-  { name: 'future', center: new THREE.Vector3(252, 0, -16), color: 0xe8fff8 },
+  { name: 'future', center: new THREE.Vector3(252, 0, 0), color: 0xe8fff8 },
 ];
 
-const stageRadius = 32;
+const stageLength = 72;
+const stageWidth = 24;
 const posterMeshes = [];
-const wallToCenter = new THREE.Vector3();
+
+const sparkleCount = 480;
+const sparkleGeo = new THREE.BufferGeometry();
+const sparklePos = new Float32Array(sparkleCount * 3);
+for (let i = 0; i < sparkleCount; i += 1) {
+  sparklePos[i * 3] = THREE.MathUtils.randFloatSpread(350);
+  sparklePos[i * 3 + 1] = THREE.MathUtils.randFloat(3, 24);
+  sparklePos[i * 3 + 2] = THREE.MathUtils.randFloatSpread(180);
+}
+sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sparklePos, 3));
+const sparkles = new THREE.Points(
+  sparkleGeo,
+  new THREE.PointsMaterial({ size: 0.25, color: 0xfff6ff, transparent: true, opacity: 0.75 }),
+);
+scene.add(sparkles);
 
 function createStageTextTexture(text) {
   const c = document.createElement('canvas');
@@ -155,61 +177,79 @@ function createStage(stage, i) {
   group.position.copy(stage.center);
   world.add(group);
 
-  const floor = new THREE.Mesh(new THREE.CylinderGeometry(stageRadius, stageRadius, 1.4, 64), shared.floor);
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(stageLength, 1.4, stageWidth), shared.floor);
   floor.receiveShadow = true;
   floor.position.y = -0.8;
   floor.material = floor.material.clone();
   floor.material.color.setHex(stage.color);
   group.add(floor);
 
-  const galleryCount = 8;
-  const galleryRadius = stageRadius - 7;
+  const framesPerSide = 5;
   const galleryScale = 0.8;
+  const spacing = stageLength / (framesPerSide + 1);
+  const wallInset = stageWidth * 0.5 - 2.1;
 
-  for (let w = 0; w < galleryCount; w += 1) {
-    const angle = (Math.PI * 2 * w) / galleryCount + Math.PI / 8;
-    const x = Math.cos(angle) * galleryRadius;
-    const z = Math.sin(angle) * galleryRadius;
+  const ceilingLight = new THREE.PointLight(0xcfc5ff, 8, 50, 2);
+  ceilingLight.position.set(0, 7.2, 0);
+  group.add(ceilingLight);
 
-    const wall = new THREE.Mesh(
-      new THREE.BoxGeometry(14.8 * galleryScale, 9 * galleryScale, 0.5 * galleryScale),
-      shared.wall,
-    );
-    wall.position.set(x, 3.6, z);
-    wall.rotation.y = Math.atan2(x, z);
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    group.add(wall);
+  for (let side of [-1, 1]) {
+    for (let w = 0; w < framesPerSide; w += 1) {
+      const x = -stageLength / 2 + spacing * (w + 1);
+      const z = side * wallInset;
 
-    wall.getWorldPosition(wallToCenter);
-    const toCenter = new THREE.Vector3().subVectors(stage.center, wallToCenter).normalize();
-    const poster = new THREE.Mesh(
-      new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
-      new THREE.MeshStandardMaterial({
-        map: posterTextures[(w + i * 2) % posterTextures.length],
-        roughness: 0.66,
-        side: THREE.DoubleSide,
-      }),
-    );
-    poster.position
-      .copy(wall.position)
-      .addScaledVector(toCenter, 0.26)
-      .add(new THREE.Vector3(0, 0.24, 0));
-    poster.lookAt(stage.center.x, poster.position.y, stage.center.z);
-    group.add(poster);
-    poster.userData.isPoster = true;
-    posterMeshes.push(poster);
+      const wall = new THREE.Mesh(
+        new THREE.BoxGeometry(14.8 * galleryScale, 9 * galleryScale, 0.5 * galleryScale),
+        shared.wall,
+      );
+      wall.position.set(x, 3.6, z);
+      wall.rotation.y = side === 1 ? Math.PI : 0;
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      group.add(wall);
 
-    const frame = new THREE.Mesh(new THREE.PlaneGeometry(13.4 * galleryScale, 9 * galleryScale), shared.posterFrame);
-    frame.position.z = -0.012;
-    poster.add(frame);
+      const poster = new THREE.Mesh(
+        new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
+        new THREE.MeshStandardMaterial({
+          map: posterTextures[(w + i * 2 + (side === 1 ? 1 : 0)) % posterTextures.length],
+          roughness: 0.66,
+          side: THREE.DoubleSide,
+        }),
+      );
+      poster.position.set(0, 0.24, 0.26);
+      wall.add(poster);
+      poster.userData.isPoster = true;
+      posterMeshes.push(poster);
 
-    const stand = new THREE.Mesh(
-      new THREE.BoxGeometry(0.42 * galleryScale, 3.8 * galleryScale, 0.42 * galleryScale),
-      shared.posterStand,
-    );
-    stand.position.set(0, -4.92, 0);
-    wall.add(stand);
+      const frameBack = new THREE.Mesh(
+        new THREE.PlaneGeometry(13.8 * galleryScale, 9.4 * galleryScale),
+        new THREE.MeshStandardMaterial({ color: 0x6f4f3a, roughness: 0.62 }),
+      );
+      frameBack.position.set(0, 0.2, -0.01);
+      wall.add(frameBack);
+
+      const h = 9 * galleryScale;
+      const w2 = 13.4 * galleryScale;
+      const trimThickness = 0.36;
+      const trimDepth = 0.18;
+      for (const [tx, ty, sx, sy] of [
+        [0, h / 2, w2, trimThickness],
+        [0, -h / 2, w2, trimThickness],
+        [-w2 / 2, 0, trimThickness, h],
+        [w2 / 2, 0, trimThickness, h],
+      ]) {
+        const trim = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, trimDepth), shared.posterFrame);
+        trim.position.set(tx, ty + 0.24, 0.18);
+        poster.add(trim);
+      }
+
+      const stand = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42 * galleryScale, 3.8 * galleryScale, 0.42 * galleryScale),
+        shared.posterStand,
+      );
+      stand.position.set(0, -4.92, 0);
+      wall.add(stand);
+    }
   }
 
   const floorLabel = new THREE.Mesh(
@@ -221,7 +261,7 @@ function createStage(stage, i) {
     }),
   );
   floorLabel.rotation.x = -Math.PI / 2;
-  floorLabel.position.set(0, -0.09, stageRadius - 9);
+  floorLabel.position.set(0, -0.09, stageWidth * 0.5 - 4);
   group.add(floorLabel);
 }
 
@@ -231,7 +271,7 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   const a = stages[i].center;
   const b = stages[i + 1].center;
   const delta = new THREE.Vector3().subVectors(b, a);
-  const length = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageRadius * 2 + 2;
+  const length = Math.sqrt(delta.x * delta.x + delta.z * delta.z) - stageLength + 2;
   const bridge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.7, 12), shared.floor);
   bridge.position.set((a.x + b.x) / 2, -0.7, (a.z + b.z) / 2);
   bridge.rotation.y = Math.atan2(delta.z, delta.x);
@@ -380,7 +420,7 @@ function updateStage() {
 
 function jumpToStage(index) {
   restorePosterFocus();
-  player.position.copy(stages[index].center).add(new THREE.Vector3(-2, 0, 0));
+  player.position.copy(stages[index].center).add(new THREE.Vector3(-stageLength * 0.35, 0, 0));
   state.moveTarget = null;
   updateStage();
   setActor('Idle');
@@ -422,7 +462,7 @@ function handleMove(dt) {
 function clampToWorld() {
   player.position.y = 0;
   player.position.x = THREE.MathUtils.clamp(player.position.x, -52, 306);
-  player.position.z = THREE.MathUtils.clamp(player.position.z, -72, 58);
+  player.position.z = THREE.MathUtils.clamp(player.position.z, -46, 46);
 }
 
 
@@ -433,7 +473,7 @@ function keepPlayerOnStageOrBridge() {
   const onStage = stages.some((stage) => {
     const dx = px - stage.center.x;
     const dz = pz - stage.center.z;
-    return dx * dx + dz * dz <= stageRadius * stageRadius;
+    return Math.abs(dx) <= stageLength * 0.5 && Math.abs(dz) <= stageWidth * 0.5;
   });
 
   const onBridge = (() => {
@@ -546,6 +586,9 @@ function animate() {
     player.position.y = Math.sin(t * 3.2) * 0.03;
   }
 
+
+  sparkles.rotation.y = Math.sin(t * 0.04) * 0.4;
+  sparkles.position.y = Math.sin(t * 0.3) * 0.5;
 
   warmLight.position.set(Math.sin(t * 0.8) * 8 + stages[state.stage].center.x, 4.5, Math.cos(t * 0.7) * 5);
   renderer.render(scene, camera);

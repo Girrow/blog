@@ -13,7 +13,7 @@ body {
   height: 100%;
   overflow: hidden;
   font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
-  background: #f5f5f0;
+  background: radial-gradient(circle at 20% 20%, #fce9ff 0%, #e6e9ff 38%, #d2e8ff 72%, #d4d6ff 100%);
 }
 
 canvas {
@@ -28,11 +28,11 @@ canvas {
   z-index: 5;
   width: min(94vw, 540px);
   padding: 0.95rem 1rem;
-  background: rgb(255 255 255 / 82%);
-  border: 1px solid rgb(0 0 0 / 8%);
+  background: rgb(255 255 255 / 74%);
+  border: 1px solid rgb(255 255 255 / 65%);
   border-radius: 16px;
-  box-shadow: 0 14px 28px rgb(0 0 0 / 10%);
-  backdrop-filter: blur(5px);
+  box-shadow: 0 16px 30px rgb(106 78 155 / 22%);
+  backdrop-filter: blur(9px);
 }
 
 h1 {
