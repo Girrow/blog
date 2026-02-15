@@ -3,13 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Photo Diary</title>
+    <title>3D Photo World</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="overlay">
-      <h1>3D Photo Diary</h1>
-      <p>마우스로 드래그해서 둘러보고, 휠로 확대/축소하세요.</p>
+    <div class="hud">
+      <h1>3D Photo World</h1>
+      <p><b>이동:</b> WASD / 화살표 · <b>인터랙션:</b> E · <b>카메라:</b> 마우스 드래그</p>
+      <p id="status">상태: Idle</p>
+      <p id="stage">스테이지: Gallery Gate</p>
+      <p id="hint">힌트: 포털(빛나는 링)로 이동해 다음 구역을 발견해보세요.</p>
     </div>
 
     <script type="module" src="main.js"></script>
