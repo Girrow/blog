@@ -123,26 +123,30 @@ const stages = [
 const stageRadius = 32;
 const posterMeshes = [];
 
-function createFloorLabelTexture(text) {
+function createStageTextTexture(text) {
   const c = document.createElement('canvas');
   c.width = 512;
-  c.height = 192;
+  c.height = 256;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#8575f7';
-  ctx.fillRect(0, 0, c.width, c.height);
 
-  let fontSize = 84;
+  let fontSize = 116;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  while (fontSize > 42) {
+  while (fontSize > 56) {
     ctx.font = `700 ${fontSize}px sans-serif`;
-    if (ctx.measureText(text).width <= c.width - 48) break;
+    if (ctx.measureText(text).width <= c.width - 56) break;
     fontSize -= 4;
   }
 
-  ctx.fillStyle = '#ffffff';
-  ctx.fillText(text, c.width / 2, c.height / 2 + 4);
-  return new THREE.CanvasTexture(c);
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = 'rgba(32, 28, 52, 0.32)';
+  ctx.strokeText(text, c.width / 2, c.height / 2 + 6);
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+  ctx.fillText(text, c.width / 2, c.height / 2 + 6);
+
+  const texture = new THREE.CanvasTexture(c);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
 }
 
 function createStage(stage, i) {
@@ -159,46 +163,58 @@ function createStage(stage, i) {
 
   const galleryCount = 8;
   const galleryRadius = stageRadius - 7;
+  const galleryScale = 0.8;
 
   for (let w = 0; w < galleryCount; w += 1) {
     const angle = (Math.PI * 2 * w) / galleryCount + Math.PI / 8;
     const x = Math.cos(angle) * galleryRadius;
     const z = Math.sin(angle) * galleryRadius;
 
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(14.8, 9, 0.5), shared.wall);
+    const wall = new THREE.Mesh(
+      new THREE.BoxGeometry(14.8 * galleryScale, 9 * galleryScale, 0.5 * galleryScale),
+      shared.wall,
+    );
     wall.position.set(x, 3.6, z);
-    wall.rotation.y = Math.atan2(-x, -z);
+    wall.rotation.y = Math.atan2(x, z);
     wall.castShadow = true;
     wall.receiveShadow = true;
     group.add(wall);
 
     const poster = new THREE.Mesh(
-      new THREE.PlaneGeometry(12.4, 8),
+      new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
       new THREE.MeshStandardMaterial({
         map: posterTextures[(w + i * 2) % posterTextures.length],
         roughness: 0.66,
         side: THREE.DoubleSide,
       }),
     );
-    poster.position.set(0, 0.28, 0.28);
+    poster.position.set(0, 0.24, 0.2);
     wall.add(poster);
     poster.userData.isPoster = true;
     posterMeshes.push(poster);
 
-    const frame = new THREE.Mesh(new THREE.PlaneGeometry(13.4, 9), shared.posterFrame);
+    const frame = new THREE.Mesh(new THREE.PlaneGeometry(13.4 * galleryScale, 9 * galleryScale), shared.posterFrame);
     frame.position.z = -0.012;
     poster.add(frame);
 
-    const stand = new THREE.Mesh(new THREE.BoxGeometry(0.42, 3.8, 0.42), shared.posterStand);
-    stand.position.set(0, -6.1, 0);
+    const stand = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42 * galleryScale, 3.8 * galleryScale, 0.42 * galleryScale),
+      shared.posterStand,
+    );
+    stand.position.set(0, -4.92, 0);
     wall.add(stand);
   }
 
-  const floorLabel = new THREE.Sprite(
-    new THREE.SpriteMaterial({ map: createFloorLabelTexture(stage.name), transparent: true }),
+  const floorLabel = new THREE.Mesh(
+    new THREE.PlaneGeometry(17, 8),
+    new THREE.MeshBasicMaterial({
+      map: createStageTextTexture(stage.name),
+      transparent: true,
+      depthWrite: false,
+    }),
   );
-  floorLabel.position.set(0, 0.06, stageRadius - 8);
-  floorLabel.scale.set(24, 6.2, 1);
+  floorLabel.rotation.x = -Math.PI / 2;
+  floorLabel.position.set(0, -0.09, stageRadius - 9);
   group.add(floorLabel);
 }
 
@@ -467,7 +483,7 @@ function updateCamera(dt) {
     const focused = state.focusedPoster;
     focused.getWorldPosition(posterLookTarget);
     const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(focused.getWorldQuaternion(new THREE.Quaternion()));
-    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, 1.8).add(new THREE.Vector3(0, 0.15, 0));
+    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, 3.2).add(new THREE.Vector3(0, 0.45, 0));
     camera.position.lerp(posterFocusPosition, 1 - Math.exp(-dt * 10));
     camera.lookAt(posterLookTarget);
     return;
