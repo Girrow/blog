@@ -122,6 +122,7 @@ const stages = [
 
 const stageRadius = 32;
 const posterMeshes = [];
+const wallToCenter = new THREE.Vector3();
 
 function createStageTextTexture(text) {
   const c = document.createElement('canvas');
@@ -180,6 +181,8 @@ function createStage(stage, i) {
     wall.receiveShadow = true;
     group.add(wall);
 
+    wall.getWorldPosition(wallToCenter);
+    const toCenter = new THREE.Vector3().subVectors(stage.center, wallToCenter).normalize();
     const poster = new THREE.Mesh(
       new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
       new THREE.MeshStandardMaterial({
@@ -188,8 +191,12 @@ function createStage(stage, i) {
         side: THREE.DoubleSide,
       }),
     );
-    poster.position.set(0, 0.24, 0.2);
-    wall.add(poster);
+    poster.position
+      .copy(wall.position)
+      .addScaledVector(toCenter, 0.26)
+      .add(new THREE.Vector3(0, 0.24, 0));
+    poster.lookAt(stage.center.x, poster.position.y, stage.center.z);
+    group.add(poster);
     poster.userData.isPoster = true;
     posterMeshes.push(poster);
 
@@ -483,7 +490,7 @@ function updateCamera(dt) {
     const focused = state.focusedPoster;
     focused.getWorldPosition(posterLookTarget);
     const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(focused.getWorldQuaternion(new THREE.Quaternion()));
-    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, 3.2).add(new THREE.Vector3(0, 0.45, 0));
+    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, 4.8).add(new THREE.Vector3(0, 0.6, 0));
     camera.position.lerp(posterFocusPosition, 1 - Math.exp(-dt * 10));
     camera.lookAt(posterLookTarget);
     return;
