@@ -98,18 +98,37 @@ ground.receiveShadow = true;
 world.add(ground);
 
 const textureLoader = new THREE.TextureLoader();
-const posterTextures = [
-  'static/stickers/chick.svg',
-  'static/stickers/bus.svg',
-  'static/stickers/star.svg',
-  'static/stickers/heart.svg',
-  'static/stickers/ribbon.svg',
-  'static/stickers/confetti.svg',
-].map((path) => {
-  const texture = textureLoader.load(path);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-});
+const stagePosterTexturePaths = {
+  past: [
+    'static/stickers/past-1.png',
+    'static/stickers/past-2.png',
+    'static/stickers/past-3.png',
+    'static/stickers/past-4.png',
+  ],
+  present: [
+    'static/stickers/present-1.png',
+    'static/stickers/present-2.png',
+    'static/stickers/present-3.png',
+    'static/stickers/present-4.png',
+  ],
+  future: [
+    'static/stickers/future-1.png',
+    'static/stickers/future-2.png',
+    'static/stickers/future-3.png',
+    'static/stickers/future-4.png',
+  ],
+};
+
+const stagePosterTextures = Object.fromEntries(
+  Object.entries(stagePosterTexturePaths).map(([stageName, paths]) => [
+    stageName,
+    paths.map((path) => {
+      const texture = textureLoader.load(path);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      return texture;
+    }),
+  ]),
+);
 
 const stages = [
   { name: 'past', center: new THREE.Vector3(0, 0, 0), color: 0xfff4dc },
@@ -204,7 +223,7 @@ function createStage(stage, i) {
       const poster = new THREE.Mesh(
         new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
         new THREE.MeshStandardMaterial({
-          map: posterTextures[(w + i * 2 + (side === 1 ? 1 : 0)) % posterTextures.length],
+          map: stagePosterTextures[stage.name][(w + (side === 1 ? 2 : 0)) % stagePosterTextures[stage.name].length],
           roughness: 0.66,
           side: THREE.DoubleSide,
         }),
@@ -395,90 +414,200 @@ createNatureDecor();
 function createMaleCharacter() {
   const character = new THREE.Group();
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.31, 0.74, 10, 14), shared.shirt);
-  torso.position.y = 1.36;
-  character.add(torso);
+  const yellowMat = shared.skin.clone();
+  yellowMat.color.setHex(0xffe23a);
+  yellowMat.roughness = 0.45;
 
-  const collar = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.035, 12, 24), shared.shirt);
-  collar.position.set(0, 1.7, 0.11);
-  collar.rotation.x = Math.PI / 2.1;
-  character.add(collar);
+  const darkBrownMat = shared.hair.clone();
+  darkBrownMat.color.setHex(0x4b2308);
 
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 10), shared.skin);
-  neck.position.y = 1.92;
-  character.add(neck);
+  const stripeMat = shared.pants.clone();
+  stripeMat.color.setHex(0x3a1d07);
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 22, 22), shared.skin);
-  head.position.y = 2.2;
-  head.scale.set(1, 1.05, 0.94);
-  character.add(head);
+  const wingMat = new THREE.MeshStandardMaterial({
+    color: 0xbfeaff,
+    roughness: 0.35,
+    transparent: true,
+    opacity: 0.85,
+  });
 
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.36, 22, 22, 0, Math.PI * 2, 0, Math.PI * 0.68), shared.hair);
-  hair.position.y = 2.32;
-  hair.scale.set(1.06, 1.02, 1);
-  character.add(hair);
+  const goggleFrameMat = new THREE.MeshStandardMaterial({ color: 0x8f8f97, roughness: 0.35, metalness: 0.45 });
+  const goggleGlassMat = new THREE.MeshStandardMaterial({
+    color: 0xd5ecc2,
+    roughness: 0.08,
+    metalness: 0.15,
+    transparent: true,
+    opacity: 0.92,
+  });
+  const bagMat = new THREE.MeshStandardMaterial({ color: 0x1950cc, roughness: 0.46, metalness: 0.1 });
+  const shoeMat = new THREE.MeshStandardMaterial({ color: 0xffdf2d, roughness: 0.48 });
 
-  const fringe = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 14), shared.hair);
-  fringe.position.set(0.03, 2.29, 0.28);
-  fringe.scale.set(1.35, 0.75, 0.72);
-  character.add(fringe);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.58, 34, 28), yellowMat);
+  body.position.y = 1.37;
+  body.scale.set(1, 1.05, 0.92);
+  character.add(body);
 
-  const earL = new THREE.Mesh(new THREE.SphereGeometry(0.065, 10, 10), shared.skin);
-  earL.position.set(-0.34, 2.14, 0.02);
-  earL.scale.set(0.9, 1.2, 0.8);
-  character.add(earL);
+  const stripeTop = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.12, 22, 40), stripeMat);
+  stripeTop.position.set(0, 1.26, 0);
+  stripeTop.rotation.x = Math.PI / 2;
+  stripeTop.scale.set(1, 0.76, 1);
+  character.add(stripeTop);
 
-  const earR = earL.clone();
-  earR.position.x *= -1;
-  character.add(earR);
+  const stripeBottom = stripeTop.clone();
+  stripeBottom.position.y = 0.95;
+  stripeBottom.scale.set(1.04, 0.74, 1);
+  character.add(stripeBottom);
 
+  const cheekMat = new THREE.MeshStandardMaterial({ color: 0xffa415, roughness: 0.6 });
   for (const side of [-1, 1]) {
-    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.04, 12, 12), shared.eye);
-    eye.position.set(side * 0.1, 2.22, 0.3);
-    eye.scale.set(1.6, 0.7, 0.8);
-    character.add(eye);
+    const cheek = new THREE.Mesh(new THREE.SphereGeometry(0.12, 18, 14), cheekMat);
+    cheek.position.set(side * 0.31, 1.42, 0.42);
+    cheek.scale.set(1.35, 0.8, 0.5);
+    character.add(cheek);
   }
 
-  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.11, 10), shared.skin);
-  nose.position.set(0, 2.12, 0.33);
-  nose.rotation.x = Math.PI / 2;
+  const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
+  const irisMat = new THREE.MeshStandardMaterial({ color: 0x4f2507, roughness: 0.2 });
+  const pupilMat = new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.2 });
+
+
+  for (const side of [-1, 1]) {
+    const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 18), eyeWhiteMat);
+    eyeWhite.position.set(side * 0.19, 1.49, 0.48);
+    eyeWhite.scale.set(1, 1.05, 0.62);
+    character.add(eyeWhite);
+
+    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.072, 20, 18), irisMat);
+    iris.position.set(side * 0.19, 1.48, 0.56);
+    iris.scale.set(1, 1.1, 0.45);
+    character.add(iris);
+
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 14), pupilMat);
+    pupil.position.set(side * 0.2, 1.47, 0.6);
+    pupil.scale.set(1, 1, 0.45);
+    character.add(pupil);
+
+    const highlight = new THREE.Mesh(new THREE.SphereGeometry(0.016, 10, 10), eyeWhiteMat);
+    highlight.position.set(side * 0.17, 1.53, 0.62);
+    highlight.scale.set(1, 1, 0.5);
+    character.add(highlight);
+
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.05, 0.04), darkBrownMat);
+    brow.position.set(side * 0.19, 1.66, 0.46);
+    brow.rotation.z = side * 0.17;
+    character.add(brow);
+  }
+
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 14), darkBrownMat);
+  nose.position.set(0, 1.36, 0.56);
+  nose.scale.set(1.1, 0.82, 0.75);
   character.add(nose);
 
-  const mouth = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.013, 10, 16, Math.PI), shared.lip);
-  mouth.position.set(0, 2.03, 0.31);
-  mouth.rotation.z = Math.PI;
-  character.add(mouth);
+  const noseHighlight = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 10), new THREE.MeshStandardMaterial({ color: 0x8f5225 }));
+  noseHighlight.position.set(-0.02, 1.38, 0.61);
+  character.add(noseHighlight);
+
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.016, 14, 24, Math.PI * 0.82), darkBrownMat);
+  smile.position.set(0, 1.27, 0.55);
+  smile.rotation.z = Math.PI;
+  character.add(smile);
+
+  const mouthTipL = new THREE.Mesh(new THREE.SphereGeometry(0.017, 10, 10), darkBrownMat);
+  mouthTipL.position.set(-0.165, 1.24, 0.53);
+  character.add(mouthTipL);
+  const mouthTipR = mouthTipL.clone();
+  mouthTipR.position.x *= -1;
+  character.add(mouthTipR);
+
+  const hairTuft = new THREE.Mesh(new THREE.SphereGeometry(0.11, 18, 16), yellowMat);
+  hairTuft.position.set(0, 1.93, 0.05);
+  hairTuft.scale.set(1.1, 0.8, 0.55);
+  character.add(hairTuft);
 
   for (const side of [-1, 1]) {
-    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 0.58, 8, 12), shared.shirt);
-    arm.position.set(side * 0.42, 1.35, 0.02);
-    arm.rotation.z = side * 0.23;
-    character.add(arm);
+    const antennaStem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.4, 10), darkBrownMat);
+    antennaStem.position.set(side * 0.19, 2.04, -0.02);
+    antennaStem.rotation.z = side * 0.45;
+    character.add(antennaStem);
 
-    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.11, 0.34, 8, 12), shared.pants);
-    leg.position.set(side * 0.16, 0.76, 0);
-    character.add(leg);
-
-    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.44), shared.shoe);
-    shoe.position.set(side * 0.16, 0.29, 0.05);
-    character.add(shoe);
+    const antennaTip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 12), darkBrownMat);
+    antennaTip.position.set(side * 0.33, 2.2, 0.04);
+    antennaTip.scale.set(1.65, 0.75, 0.6);
+    antennaTip.rotation.z = side * 0.22;
+    character.add(antennaTip);
   }
 
-  const bagStrap = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1.45, 0.05), shared.bagStrap);
-  bagStrap.position.set(0.09, 1.43, 0.2);
-  bagStrap.rotation.z = 0.66;
-  bagStrap.rotation.y = -0.24;
+  for (const side of [-1, 1]) {
+    const wing = new THREE.Mesh(new THREE.SphereGeometry(0.22, 18, 16), wingMat);
+    wing.position.set(side * 0.44, 1.08, -0.25);
+    wing.scale.set(1.15, 1.28, 0.38);
+    wing.rotation.y = side * 0.45;
+    character.add(wing);
+  }
+
+  const goggleBridge = new THREE.Mesh(new THREE.CapsuleGeometry(0.032, 0.12, 8, 10), goggleFrameMat);
+  goggleBridge.position.set(0, 1.85, 0.4);
+  goggleBridge.rotation.z = Math.PI / 2;
+  character.add(goggleBridge);
+
+  for (const side of [-1, 1]) {
+    const goggleFrame = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.04, 16, 26), goggleFrameMat);
+    goggleFrame.position.set(side * 0.2, 1.83, 0.39);
+    goggleFrame.rotation.y = side * 0.26;
+    goggleFrame.rotation.x = -0.15;
+    character.add(goggleFrame);
+
+    const goggleGlass = new THREE.Mesh(new THREE.CircleGeometry(0.125, 26), goggleGlassMat);
+    goggleGlass.position.set(side * 0.2, 1.81, 0.5);
+    goggleGlass.rotation.y = side * 0.26;
+    goggleGlass.rotation.x = -0.15;
+    character.add(goggleGlass);
+  }
+
+  const bagStrap = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.04, 0.06), bagMat);
+  bagStrap.position.set(0.17, 0.94, 0.35);
+  bagStrap.rotation.z = 0.72;
+  bagStrap.rotation.y = -0.2;
   character.add(bagStrap);
 
-  const bagTop = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.16), shared.bagStrap);
-  bagTop.position.set(0.46, 1.64, -0.02);
-  bagTop.rotation.y = 0.15;
-  character.add(bagTop);
+  const bag = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.2, 8, 14), bagMat);
+  bag.position.set(-0.15, 0.71, 0.42);
+  bag.rotation.z = -0.1;
+  bag.scale.set(1.16, 1.08, 0.68);
+  character.add(bag);
 
-  const watchBand = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.018, 10, 18), shared.watch);
-  watchBand.position.set(-0.45, 1.06, 0.02);
-  watchBand.rotation.y = Math.PI / 2;
-  character.add(watchBand);
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.28, 8, 10), yellowMat);
+    arm.position.set(side * 0.42, 0.88, 0.24);
+    arm.rotation.z = side === -1 ? 0.55 : -0.48;
+    arm.rotation.x = side === -1 ? 0.2 : -0.16;
+    character.add(arm);
+
+    const fist = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 14), yellowMat);
+    fist.position.set(side * 0.5, 0.68, 0.3);
+    fist.scale.set(1, 0.95, 0.9);
+    character.add(fist);
+
+    const leg = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.3, 8, 10), stripeMat);
+    leg.position.set(side * 0.17, 0.26, 0.02);
+    leg.rotation.x = side === -1 ? -0.12 : 0.15;
+    character.add(leg);
+
+    const sock = new THREE.Mesh(new THREE.TorusGeometry(0.09, 0.025, 10, 18), new THREE.MeshStandardMaterial({ color: 0xff9f12 }));
+    sock.position.set(side * 0.17, 0.05, 0.08);
+    sock.rotation.x = Math.PI / 2;
+    character.add(sock);
+
+    const shoe = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.16, 8, 10), shoeMat);
+    shoe.position.set(side * 0.17, -0.06, 0.08);
+    shoe.rotation.x = side === -1 ? 0.08 : -0.08;
+    shoe.scale.set(1.16, 0.82, 1.05);
+    character.add(shoe);
+
+    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.16), shared.shoe);
+    sole.position.set(side * 0.17, -0.15, 0.11);
+    character.add(sole);
+  }
 
   character.traverse((obj) => {
     if (obj.isMesh) {
@@ -487,7 +616,7 @@ function createMaleCharacter() {
     }
   });
 
-  character.position.set(0, 0, 0);
+  character.position.set(0, 0.15, 0);
   return character;
 }
 
