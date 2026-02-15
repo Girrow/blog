@@ -2,17 +2,18 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Photo World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Choonsik Mini World</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div class="hud">
-      <h1>3D Photo World</h1>
-      <p><b>이동:</b> WASD / 화살표 · <b>인터랙션:</b> E · <b>카메라:</b> 마우스 드래그</p>
+      <h1>Choonsik Mini World</h1>
+      <p><b>조작:</b> 화면/오브젝트를 클릭(또는 터치)해서 이동 및 상호작용</p>
       <p id="status">상태: Idle</p>
-      <p id="stage">스테이지: Gallery Gate</p>
-      <p id="hint">힌트: 포털(빛나는 링)로 이동해 다음 구역을 발견해보세요.</p>
+      <p id="stage">스테이지: Bus Stop</p>
+      <p id="hint">힌트: 바닥을 클릭하면 그 위치로 이동하고, 포털을 누르면 다음 구역으로 이동해요.</p>
+      <div id="stage-jump" class="stage-jump"></div>
     </div>
 
     <script type="module" src="main.js"></script>
