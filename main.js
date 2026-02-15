@@ -27,7 +27,11 @@ const shared = {
   floor: new THREE.MeshStandardMaterial({ color: 0xf4f0e6, roughness: 0.95 }),
   wall: new THREE.MeshStandardMaterial({ color: 0xfff9f0, roughness: 0.88 }),
   posterFrame: new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.42 }),
-  player: new THREE.MeshStandardMaterial({ color: 0xffd65a, roughness: 0.35, metalness: 0.12 }),
+  skin: new THREE.MeshStandardMaterial({ color: 0xf2c49a, roughness: 0.52 }),
+  hair: new THREE.MeshStandardMaterial({ color: 0x2d221d, roughness: 0.7 }),
+  shirt: new THREE.MeshStandardMaterial({ color: 0x4d8bff, roughness: 0.48 }),
+  pants: new THREE.MeshStandardMaterial({ color: 0x2d3b66, roughness: 0.6 }),
+  shoe: new THREE.MeshStandardMaterial({ color: 0x444444, roughness: 0.72 }),
   portal: new THREE.MeshStandardMaterial({ color: 0x67dbc6, emissive: 0x2db89e, emissiveIntensity: 0.9 }),
   easter: new THREE.MeshStandardMaterial({ color: 0xffb77d, emissive: 0xae4f20, emissiveIntensity: 0.5 }),
 };
@@ -223,9 +227,52 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   world.add(bridge);
 }
 
-const player = new THREE.Mesh(new THREE.CapsuleGeometry(0.45, 1, 6, 12), shared.player);
-player.position.set(0, 0.7, 0);
-player.castShadow = true;
+function createMaleCharacter() {
+  const character = new THREE.Group();
+
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.92, 0.44), shared.shirt);
+  torso.position.y = 1.36;
+  character.add(torso);
+
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 10), shared.skin);
+  neck.position.y = 1.92;
+  character.add(neck);
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 20, 20), shared.skin);
+  head.position.y = 2.2;
+  character.add(head);
+
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.35, 20, 20, 0, Math.PI * 2, 0, Math.PI * 0.58), shared.hair);
+  hair.position.y = 2.3;
+  character.add(hair);
+
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.74, 0.2), shared.shirt);
+    arm.position.set(side * 0.54, 1.35, 0);
+    character.add(arm);
+
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.8, 0.26), shared.pants);
+    leg.position.set(side * 0.16, 0.66, 0);
+    character.add(leg);
+
+    const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.12, 0.44), shared.shoe);
+    shoe.position.set(side * 0.16, 0.2, 0.05);
+    character.add(shoe);
+  }
+
+  character.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.receiveShadow = true;
+    }
+  });
+
+  character.position.set(0, 0, 0);
+  return character;
+}
+
+const player = createMaleCharacter();
+player.position.set(0, 0, 0);
 scene.add(player);
 
 const state = {
@@ -261,7 +308,7 @@ function updateStage() {
 }
 
 function jumpToStage(index) {
-  player.position.copy(stages[index].center).add(new THREE.Vector3(-2, 0.7, 0));
+  player.position.copy(stages[index].center).add(new THREE.Vector3(-2, 0, 0));
   state.moveTarget = null;
   updateStage();
   setActor('Idle');
@@ -301,7 +348,7 @@ function handleMove(dt) {
 }
 
 function clampToWorld() {
-  player.position.y = 0.7;
+  player.position.y = 0;
   player.position.x = THREE.MathUtils.clamp(player.position.x, -14, 64);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -22, 20);
 }
@@ -334,56 +381,19 @@ function tryEgg() {
   return false;
 }
 
-let camYaw = 0.2;
-let camPitch = 0.42;
+const cameraOffset = new THREE.Vector3(-8.5, 12, 9.5);
 const cameraTarget = new THREE.Vector3();
 const desiredCamera = new THREE.Vector3();
 
 function updateCamera(dt) {
-  const radius = 8;
-  cameraTarget.copy(player.position).add(new THREE.Vector3(0, 1.4, 0));
-  desiredCamera.set(
-    cameraTarget.x + Math.sin(camYaw) * Math.cos(camPitch) * radius,
-    cameraTarget.y + Math.sin(camPitch) * 4.2,
-    cameraTarget.z + Math.cos(camYaw) * Math.cos(camPitch) * radius,
-  );
+  cameraTarget.copy(player.position).add(new THREE.Vector3(0, 1.2, 0));
+  desiredCamera.copy(cameraTarget).add(cameraOffset);
 
   camera.position.lerp(desiredCamera, 1 - Math.exp(-dt * 8));
   camera.lookAt(cameraTarget);
 }
 
-let pointerDown = false;
-let dragMoved = false;
-let dragX = 0;
-let dragY = 0;
-
-renderer.domElement.addEventListener('pointerdown', (e) => {
-  pointerDown = true;
-  dragMoved = false;
-  dragX = e.clientX;
-  dragY = e.clientY;
-});
-
-window.addEventListener('pointermove', (e) => {
-  if (!pointerDown) return;
-  const dx = e.clientX - dragX;
-  const dy = e.clientY - dragY;
-  if (Math.abs(dx) + Math.abs(dy) > 3) dragMoved = true;
-
-  camYaw -= dx * 0.004;
-  camPitch += dy * 0.003;
-  camPitch = THREE.MathUtils.clamp(camPitch, 0.1, 0.95);
-
-  dragX = e.clientX;
-  dragY = e.clientY;
-});
-
-window.addEventListener('pointerup', (e) => {
-  if (!pointerDown) return;
-  pointerDown = false;
-
-  if (dragMoved) return;
-
+renderer.domElement.addEventListener('pointerup', (e) => {
   pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
   pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(pointer, camera);
@@ -403,7 +413,7 @@ window.addEventListener('pointerup', (e) => {
     return;
   }
 
-  state.moveTarget = new THREE.Vector3(hit.point.x, 0.7, hit.point.z);
+  state.moveTarget = new THREE.Vector3(hit.point.x, 0, hit.point.z);
   setHint('이동 중... 포털/오브젝트를 누르면 상호작용할 수 있어요.');
 });
 
@@ -418,7 +428,7 @@ function animate() {
   updateCamera(dt);
 
   if (state.actor === 'Idle') {
-    player.position.y = 0.7 + Math.sin(t * 3.2) * 0.04;
+    player.position.y = Math.sin(t * 3.2) * 0.03;
   }
 
   portals.forEach((p, i) => {
