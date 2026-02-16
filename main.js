@@ -158,10 +158,11 @@ const stages = [
 ];
 
 const stageLength = 72;
-const stageWidth = 24;
+const stageWidth = 34;
 const posterMeshes = [];
 const walkableMeshes = [];
 const bridgeZones = [];
+const posterAspectRatio = 1080 / 1920;
 
 const sparkleCount = 480;
 const sparkleGeo = new THREE.BufferGeometry();
@@ -253,6 +254,14 @@ function createStage(stage, i) {
   const galleryScale = 0.8;
   const spacing = stageLength / (framesPerSide + 1);
   const wallInset = stageWidth * 0.5 - 2.1;
+  const posterHeight = 8 * galleryScale;
+  const posterWidth = posterHeight * posterAspectRatio;
+  const captionHeight = 1.6 * galleryScale;
+  const framePadding = 0.7;
+  const frameWidth = posterWidth + framePadding;
+  const frameHeight = posterHeight + framePadding;
+  const wallWidth = frameWidth + 1.1;
+  const wallHeight = frameHeight + 0.9;
 
   const ceilingLight = new THREE.PointLight(0xcfc5ff, 8, 50, 2);
   ceilingLight.position.set(0, 7.2, 0);
@@ -264,7 +273,7 @@ function createStage(stage, i) {
       const z = side * wallInset;
 
       const wall = new THREE.Mesh(
-        new THREE.BoxGeometry(14.8 * galleryScale, 9 * galleryScale, 0.5 * galleryScale),
+        new THREE.BoxGeometry(wallWidth, wallHeight, 0.5 * galleryScale),
         shared.wall,
       );
       wall.position.set(x, 3.6, z);
@@ -276,7 +285,7 @@ function createStage(stage, i) {
       const posterIndex = (w + (side === 1 ? 2 : 0)) % stagePosterTextures[stage.name].length;
 
       const poster = new THREE.Mesh(
-        new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
+        new THREE.PlaneGeometry(posterWidth, posterHeight),
         new THREE.MeshStandardMaterial({
           map: stagePosterTextures[stage.name][posterIndex],
           roughness: 0.66,
@@ -284,29 +293,32 @@ function createStage(stage, i) {
         }),
       );
       poster.position.set(0, 0.24, 0.26);
+      if (stage.name === 'past' && side === -1) {
+        poster.rotation.y = Math.PI;
+      }
       wall.add(poster);
       poster.userData.isPoster = true;
       posterMeshes.push(poster);
 
       const caption = new THREE.Mesh(
-        new THREE.PlaneGeometry(12.2 * galleryScale, 1.6 * galleryScale),
+        new THREE.PlaneGeometry(frameWidth - 0.2, captionHeight),
         new THREE.MeshBasicMaterial({
           map: createPosterTitleTexture(stagePosterTitles[stage.name][posterIndex]),
           transparent: true,
         }),
       );
-      caption.position.set(0, -3.2, 0.28);
+      caption.position.set(0, -posterHeight * 0.5 + captionHeight * -0.6, 0.28);
       wall.add(caption);
 
       const frameBack = new THREE.Mesh(
-        new THREE.PlaneGeometry(13.8 * galleryScale, 9.4 * galleryScale),
+        new THREE.PlaneGeometry(frameWidth, frameHeight),
         new THREE.MeshStandardMaterial({ color: 0x6f4f3a, roughness: 0.62 }),
       );
       frameBack.position.set(0, 0.2, -0.01);
       wall.add(frameBack);
 
-      const h = 9 * galleryScale;
-      const w2 = 13.4 * galleryScale;
+      const h = frameHeight;
+      const w2 = frameWidth;
       const trimThickness = 0.36;
       const trimDepth = 0.18;
       for (const [tx, ty, sx, sy] of [
@@ -888,6 +900,7 @@ const state = {
   actor: 'Idle',
   moveTarget: null,
   focusedPoster: null,
+  focusedPosterDistance: 4.8,
   canRestoreFocus: false,
 };
 
@@ -961,7 +974,7 @@ function handleMove(dt) {
 function clampToWorld() {
   player.position.y = 0;
   player.position.x = THREE.MathUtils.clamp(player.position.x, -52, 306);
-  player.position.z = THREE.MathUtils.clamp(player.position.z, -46, 46);
+  player.position.z = THREE.MathUtils.clamp(player.position.z, -56, 56);
 }
 
 
@@ -1003,6 +1016,15 @@ const posterLookTarget = new THREE.Vector3();
 
 function focusPoster(poster) {
   state.focusedPoster = poster;
+  const posterSize = new THREE.Vector3();
+  new THREE.Box3().setFromObject(poster).getSize(posterSize);
+
+  const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+  const horizontalFov = 2 * Math.atan(Math.tan(verticalFov / 2) * camera.aspect);
+  const distanceForHeight = (posterSize.y * 0.5) / Math.tan(verticalFov / 2);
+  const distanceForWidth = (posterSize.x * 0.5) / Math.tan(horizontalFov / 2);
+  state.focusedPosterDistance = Math.max(distanceForHeight, distanceForWidth) + 0.8;
+
   state.canRestoreFocus = false;
   state.moveTarget = null;
   setActor('Idle');
@@ -1024,7 +1046,7 @@ function updateCamera(dt) {
     const focused = state.focusedPoster;
     focused.getWorldPosition(posterLookTarget);
     const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(focused.getWorldQuaternion(new THREE.Quaternion()));
-    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, 4.8).add(new THREE.Vector3(0, 0.6, 0));
+    posterFocusPosition.copy(posterLookTarget).addScaledVector(normal, state.focusedPosterDistance).add(new THREE.Vector3(0, 0.4, 0));
     camera.position.lerp(posterFocusPosition, 1 - Math.exp(-dt * 10));
     camera.lookAt(posterLookTarget);
     return;
