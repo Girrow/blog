@@ -388,8 +388,8 @@ function createStage(stage, i) {
   const galleryScale = 0.8;
   const spacing = stageLength / (framesPerSide + 1);
   const wallInsetBySide = {
-    1: stageWidth * 0.5 - 2.1,
     '-1': stageWidth * 0.5 - 6.2,
+    1: stageWidth * 0.5 - 6.2,
   };
   const posterHeight = 8 * galleryScale;
   const posterWidth = posterHeight * posterAspectRatio;
@@ -416,7 +416,7 @@ function createStage(stage, i) {
         shared.wall,
       );
       wall.position.set(x, 3.6, z);
-      wall.rotation.y = side === 1 ? Math.PI : 0;
+      wall.rotation.y = 0;
       wall.castShadow = true;
       wall.receiveShadow = true;
       group.add(wall);
