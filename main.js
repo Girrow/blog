@@ -1,5 +1,4 @@
 import * as THREE from './static/vendor/three.module.js';
-import { GLTFLoader } from './static/vendor/GLTFLoader.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb8c8ff);
@@ -670,46 +669,10 @@ const player = new THREE.Group();
 player.position.set(0, 0, 0);
 scene.add(player);
 
-const gltfLoader = new GLTFLoader();
-
 function loadMainCharacter() {
-  const modelUrl = './static/models/RobotExpressive.glb';
-  gltfLoader.load(
-    modelUrl,
-    (gltf) => {
-      player.clear();
-      const character = gltf.scene;
-      character.rotation.y = Math.PI;
-
-      const box = new THREE.Box3().setFromObject(character);
-      const size = box.getSize(new THREE.Vector3());
-      const targetHeight = 2.15;
-      const safeHeight = Math.max(size.y, 0.001);
-      const scale = targetHeight / safeHeight;
-      character.scale.setScalar(scale);
-
-      const fittedBox = new THREE.Box3().setFromObject(character);
-      const center = fittedBox.getCenter(new THREE.Vector3());
-      const minY = fittedBox.min.y;
-      character.position.set(-center.x, -minY, -center.z);
-
-      character.traverse((obj) => {
-        if (obj.isMesh) {
-          obj.castShadow = true;
-          obj.receiveShadow = true;
-        }
-      });
-
-      player.add(character);
-      setHint('메인 캐릭터를 GLB 모델로 불러왔어요. 바닥을 클릭해 이동해 보세요.');
-    },
-    undefined,
-    () => {
-      player.clear();
-      player.add(createFallbackCharacter());
-      setHint('GLB 캐릭터 로드에 실패해 기본 캐릭터로 표시 중이에요.');
-    },
-  );
+  player.clear();
+  player.add(createFallbackCharacter());
+  setHint('기본 three.js 캐릭터를 사용 중이에요. 바닥을 클릭해 이동해 보세요.');
 }
 
 loadMainCharacter();
