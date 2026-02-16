@@ -122,16 +122,16 @@ const stagePosterTexturePaths = {
 
 const stagePosterTitles = {
   past: [
-    '어린 시절의 첫 기억',
-    '가족과 함께한 여행',
-    '학교에서의 첫 도전',
-    '꿈을 키우던 순간',
-    '처음 만든 작품 노트',
-    '비 오는 날의 운동장',
-    '친구들과의 축제 준비',
-    '작은 용기를 냈던 발표',
-    '해 질 무렵의 귀가길',
-    '오래 간직한 소중한 장면',
+    '놀랍게도 20살 시작',
+    '군대가기 전 일탈 시작',
+    '전역 이후 알비 첫 시작',
+    '군대 휴가 시작',
+    '빈칸1',
+    '빈칸1',
+    '빈칸2',
+    '빈칸3',
+    '빈칸4',
+    '빈칸5',
   ],
   present: [
     '지금의 일상 루틴',
@@ -326,7 +326,7 @@ function createPosterTitleTexture(text) {
   const titleMetrics = ctx.measureText(text);
   const titleAscent = titleMetrics.actualBoundingBoxAscent || fontSize * 0.74;
   const titleDescent = titleMetrics.actualBoundingBoxDescent || fontSize * 0.26;
-  const titleTextY = (canvas.height + titleAscent - titleDescent) / 2 - 10;
+  const titleTextY = (canvas.height + titleAscent - titleDescent) / 2 - 50;
   ctx.strokeText(text, canvas.width / 2, titleTextY);
   ctx.fillText(text, canvas.width / 2, titleTextY);
 
@@ -451,7 +451,7 @@ function createStage(stage, i) {
       );
       caption.position.set(0, -posterHeight * 0.5 - captionHeight * 0.4, 0.5);
       wall.add(caption);
-
+      /*
       const comment = new THREE.Mesh(
         new THREE.PlaneGeometry(frameWidth - 0.2, captionHeight * 0.92),
         new THREE.MeshBasicMaterial({
@@ -461,7 +461,7 @@ function createStage(stage, i) {
       );
       comment.position.set(0, -posterHeight * 0.5 - captionHeight * 1.42, 0.5);
       wall.add(comment);
-
+       */
       const frameBack = new THREE.Mesh(
         new THREE.PlaneGeometry(frameWidth, frameHeight),
         new THREE.MeshStandardMaterial({ color: 0x6f4f3a, roughness: 0.62 }),
