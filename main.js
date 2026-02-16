@@ -229,24 +229,31 @@ function createStageTextTexture(text) {
 function createPosterTitleTexture(text) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
-  canvas.height = 192;
+  canvas.height = 220;
   const ctx = canvas.getContext('2d');
 
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  gradient.addColorStop(0, 'rgba(33, 28, 53, 0.82)');
-  gradient.addColorStop(1, 'rgba(52, 42, 77, 0.82)');
+  gradient.addColorStop(0, 'rgba(17, 14, 28, 0.96)');
+  gradient.addColorStop(1, 'rgba(34, 27, 52, 0.96)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+  ctx.lineWidth = 6;
+  ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
+
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(255, 252, 246, 0.98)';
-  let fontSize = 70;
-  while (fontSize > 40) {
-    ctx.font = `700 ${fontSize}px Pretendard, Noto Sans KR, sans-serif`;
+  ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+  ctx.strokeStyle = 'rgba(0, 0, 0, 0.38)';
+  let fontSize = 74;
+  while (fontSize > 44) {
+    ctx.font = `800 ${fontSize}px Pretendard, Noto Sans KR, sans-serif`;
     if (ctx.measureText(text).width < canvas.width - 90) break;
     fontSize -= 4;
   }
+  ctx.lineWidth = 10;
+  ctx.strokeText(text, canvas.width / 2, canvas.height / 2 + 3);
   ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -257,12 +264,12 @@ function createPosterTitleTexture(text) {
 function createPosterCommentTexture(text) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
-  canvas.height = 176;
+  canvas.height = 210;
   const ctx = canvas.getContext('2d');
 
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-  gradient.addColorStop(0, 'rgba(255, 248, 236, 0.95)');
-  gradient.addColorStop(1, 'rgba(242, 234, 222, 0.95)');
+  gradient.addColorStop(0, 'rgba(255, 250, 239, 0.98)');
+  gradient.addColorStop(1, 'rgba(249, 241, 228, 0.98)');
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -272,13 +279,16 @@ function createPosterCommentTexture(text) {
 
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = 'rgba(52, 39, 27, 0.9)';
-  let fontSize = 42;
-  while (fontSize > 28) {
-    ctx.font = `500 ${fontSize}px Pretendard, Noto Sans KR, sans-serif`;
+  ctx.fillStyle = 'rgba(34, 24, 13, 0.98)';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+  let fontSize = 45;
+  while (fontSize > 30) {
+    ctx.font = `700 ${fontSize}px Pretendard, Noto Sans KR, sans-serif`;
     if (ctx.measureText(text).width < canvas.width - 90) break;
     fontSize -= 2;
   }
+  ctx.lineWidth = 5;
+  ctx.strokeText(text, canvas.width / 2, canvas.height / 2 + 1);
   ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
 
   const texture = new THREE.CanvasTexture(canvas);
@@ -346,6 +356,7 @@ function createStage(stage, i) {
         }),
       );
       poster.position.set(0, 0.24, 0.26);
+      poster.rotation.y = side === 1 ? Math.PI : 0;
       wall.add(poster);
       poster.userData.isPoster = true;
       posterMeshes.push(poster);
@@ -355,9 +366,12 @@ function createStage(stage, i) {
         new THREE.MeshBasicMaterial({
           map: createPosterTitleTexture(stagePosterTitles[stage.name][posterIndex]),
           transparent: true,
+          depthTest: false,
         }),
       );
-      caption.position.set(0, -posterHeight * 0.5 + captionHeight * -0.6, 0.28);
+      caption.position.set(0, -posterHeight * 0.5 - captionHeight * 0.4, 0.5);
+      caption.rotation.y = side === 1 ? Math.PI : 0;
+      caption.renderOrder = 10;
       wall.add(caption);
 
       const comment = new THREE.Mesh(
@@ -365,9 +379,12 @@ function createStage(stage, i) {
         new THREE.MeshBasicMaterial({
           map: createPosterCommentTexture(stagePosterComments[stage.name][posterIndex]),
           transparent: true,
+          depthTest: false,
         }),
       );
-      comment.position.set(0, -posterHeight * 0.5 - captionHeight * 1.15, 0.28);
+      comment.position.set(0, -posterHeight * 0.5 - captionHeight * 1.42, 0.5);
+      comment.rotation.y = side === 1 ? Math.PI : 0;
+      comment.renderOrder = 10;
       wall.add(comment);
 
       const frameBack = new THREE.Mesh(
