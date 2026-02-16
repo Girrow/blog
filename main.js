@@ -113,31 +113,50 @@ ground.receiveShadow = true;
 world.add(ground);
 
 const textureLoader = new THREE.TextureLoader();
+const posterCountPerStage = 10;
 const stagePosterTexturePaths = {
-  past: [
-    'static/stickers/past-1.png',
-    'static/stickers/past-2.png',
-    'static/stickers/past-3.png',
-    'static/stickers/past-4.png',
-  ],
-  present: [
-    'static/stickers/present-1.png',
-    'static/stickers/present-2.png',
-    'static/stickers/present-3.png',
-    'static/stickers/present-4.png',
-  ],
-  future: [
-    'static/stickers/future-1.png',
-    'static/stickers/future-2.png',
-    'static/stickers/future-3.png',
-    'static/stickers/future-4.png',
-  ],
+  past: Array.from({ length: posterCountPerStage }, (_, index) => `static/stickers/past-${index + 1}.png`),
+  present: Array.from({ length: posterCountPerStage }, (_, index) => `static/stickers/present-${index + 1}.png`),
+  future: Array.from({ length: posterCountPerStage }, (_, index) => `static/stickers/future-${index + 1}.png`),
 };
 
 const stagePosterTitles = {
-  past: ['어린 시절의 첫 기억', '가족과 함께한 여행', '학교에서의 첫 도전', '꿈을 키우던 순간'],
-  present: ['지금의 일상 루틴', '함께하는 팀 프로젝트', '성장 중인 나의 기록', '요즘 가장 몰입한 취미'],
-  future: ['가고 싶은 도시', '만들고 싶은 작품', '이루고 싶은 목표', '미래의 나에게 보내는 메시지'],
+  past: [
+    '어린 시절의 첫 기억',
+    '가족과 함께한 여행',
+    '학교에서의 첫 도전',
+    '꿈을 키우던 순간',
+    '처음 만든 작품 노트',
+    '비 오는 날의 운동장',
+    '친구들과의 축제 준비',
+    '작은 용기를 냈던 발표',
+    '해 질 무렵의 귀가길',
+    '오래 간직한 소중한 장면',
+  ],
+  present: [
+    '지금의 일상 루틴',
+    '함께하는 팀 프로젝트',
+    '성장 중인 나의 기록',
+    '요즘 가장 몰입한 취미',
+    '작업실의 오후 풍경',
+    '새로운 아이디어 스케치',
+    '동료와 나눈 피드백',
+    '집중이 가장 잘 되는 시간',
+    '몸과 마음을 돌보는 습관',
+    '오늘의 작은 성취',
+  ],
+  future: [
+    '가고 싶은 도시',
+    '만들고 싶은 작품',
+    '이루고 싶은 목표',
+    '미래의 나에게 보내는 메시지',
+    '함께 열고 싶은 전시',
+    '도전해 보고 싶은 기술',
+    '오래 지속할 프로젝트',
+    '새로운 팀과의 협업',
+    '내가 꿈꾸는 하루의 모습',
+    '미래를 향한 약속',
+  ],
 };
 
 const stagePosterComments = {
@@ -146,26 +165,77 @@ const stagePosterComments = {
     '가족과 웃던 순간이 아직도 선명하게 남아있다.',
     '두려워도 한 걸음 내딛었던 그날의 용기.',
     '작은 메모장에 큰 꿈을 적어 내려가던 시기.',
+    '서툴지만 진심으로 몰입했던 첫 창작의 기록.',
+    '비 냄새와 함께 떠오르는 또렷한 풍경의 조각.',
+    '서로를 응원하며 밤늦게까지 준비했던 시간.',
+    '떨렸지만 끝내 해냈던 순간이 남긴 자신감.',
+    '하루를 마무리하며 스스로를 다독이던 장면.',
+    '시간이 지나도 선명하게 남아 있는 추억의 온기.',
   ],
   present: [
     '반복되는 일상 속에서도 꾸준함을 연습하는 중.',
     '서로 다른 아이디어가 모여 더 나은 결과를 만든다.',
     '어제보다 나아진 오늘을 남기는 개인 아카이브.',
     '몰입하는 시간이 하루의 에너지를 채워준다.',
+    '익숙한 공간에서도 새로운 시선을 발견하려 한다.',
+    '작은 스케치 하나가 다음 결과물의 출발점이 된다.',
+    '대화 속에서 놓치기 쉬운 힌트를 자주 얻는다.',
+    '리듬을 찾은 시간대에는 집중이 자연스럽게 이어진다.',
+    '건강한 루틴이 작업의 지속력을 만들어 준다.',
+    '작은 완성도 모이면 분명한 변화로 이어진다.',
   ],
   future: [
     '낯선 도시에서 새로운 시선을 만나고 싶다.',
     '언젠가 사람들에게 오래 기억될 작품을 만들고 싶다.',
     '명확한 목표는 매일의 선택을 단단하게 만든다.',
     '미래의 나에게: 지금의 진심을 잊지 말자.',
+    '더 많은 사람과 감상을 나누는 공간을 만들고 싶다.',
+    '낯선 분야를 배우며 표현의 폭을 넓히고 싶다.',
+    '오랜 시간 애정을 담아 완성할 작업을 준비 중이다.',
+    '서로 영감을 주고받는 동료들과 함께 성장하고 싶다.',
+    '일과 삶이 균형을 이루는 하루를 설계하고 싶다.',
+    '작은 실천을 꾸준히 쌓아 먼 미래를 바꾸고 싶다.',
   ],
 };
+
+function createPosterFallbackTexture(stageName, posterNumber) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1920;
+  const ctx = canvas.getContext('2d');
+
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+  gradient.addColorStop(0, '#ffe9f0');
+  gradient.addColorStop(1, '#f3f0ff');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = 'rgba(29, 24, 36, 0.82)';
+  ctx.font = '700 90px Pretendard, Noto Sans KR, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(`${stageName.toUpperCase()} ${posterNumber}`, canvas.width / 2, canvas.height / 2 - 30);
+  ctx.font = '500 56px Pretendard, Noto Sans KR, sans-serif';
+  ctx.fillText('IMAGE 준비 중', canvas.width / 2, canvas.height / 2 + 70);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
 
 const stagePosterTextures = Object.fromEntries(
   Object.entries(stagePosterTexturePaths).map(([stageName, paths]) => [
     stageName,
-    paths.map((path) => {
-      const texture = textureLoader.load(path);
+    paths.map((path, index) => {
+      const texture = textureLoader.load(
+        path,
+        undefined,
+        undefined,
+        () => {
+          const fallbackTexture = createPosterFallbackTexture(stageName, index + 1);
+          texture.image = fallbackTexture.image;
+          texture.needsUpdate = true;
+        },
+      );
       texture.colorSpace = THREE.SRGBColorSpace;
       return texture;
     }),
@@ -313,10 +383,14 @@ function createStage(stage, i) {
   group.add(floor);
   walkableMeshes.push(floor);
 
-  const framesPerSide = 5;
+  const totalPosters = stagePosterTextures[stage.name].length;
+  const framesPerSide = Math.ceil(totalPosters / 2);
   const galleryScale = 0.8;
   const spacing = stageLength / (framesPerSide + 1);
-  const wallInset = stageWidth * 0.5 - 2.1;
+  const wallInsetBySide = {
+    1: stageWidth * 0.5 - 2.1,
+    '-1': stageWidth * 0.5 - 6.2,
+  };
   const posterHeight = 8 * galleryScale;
   const posterWidth = posterHeight * posterAspectRatio;
   const captionHeight = 1.6 * galleryScale;
@@ -333,7 +407,9 @@ function createStage(stage, i) {
   for (let side of [-1, 1]) {
     for (let w = 0; w < framesPerSide; w += 1) {
       const x = -stageLength / 2 + spacing * (w + 1);
-      const z = side * wallInset;
+      const z = side * wallInsetBySide[side];
+      const posterIndex = side === -1 ? w : w + framesPerSide;
+      if (posterIndex >= totalPosters) continue;
 
       const wall = new THREE.Mesh(
         new THREE.BoxGeometry(wallWidth, wallHeight, 0.5 * galleryScale),
@@ -345,8 +421,6 @@ function createStage(stage, i) {
       wall.receiveShadow = true;
       group.add(wall);
 
-      const posterIndex = (w + (side === 1 ? 2 : 0)) % stagePosterTextures[stage.name].length;
-
       const poster = new THREE.Mesh(
         new THREE.PlaneGeometry(posterWidth, posterHeight),
         new THREE.MeshStandardMaterial({
@@ -356,7 +430,6 @@ function createStage(stage, i) {
         }),
       );
       poster.position.set(0, 0.24, 0.26);
-      poster.rotation.y = side === 1 ? Math.PI : 0;
       wall.add(poster);
       poster.userData.isPoster = true;
       posterMeshes.push(poster);
@@ -370,7 +443,6 @@ function createStage(stage, i) {
         }),
       );
       caption.position.set(0, -posterHeight * 0.5 - captionHeight * 0.4, 0.5);
-      caption.rotation.y = side === 1 ? Math.PI : 0;
       caption.renderOrder = 10;
       wall.add(caption);
 
@@ -383,7 +455,6 @@ function createStage(stage, i) {
         }),
       );
       comment.position.set(0, -posterHeight * 0.5 - captionHeight * 1.42, 0.5);
-      comment.rotation.y = side === 1 ? Math.PI : 0;
       comment.renderOrder = 10;
       wall.add(comment);
 
