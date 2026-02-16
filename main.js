@@ -695,7 +695,7 @@ scene.add(player);
 function loadMainCharacter() {
   const loader = new GLTFLoader();
   const modelCandidates = [
-    'static/models/character.glb',
+    'static/RobotExpressive.glb',
     'static/models/main-character.glb',
     'static/models/avatar.glb',
   ];
