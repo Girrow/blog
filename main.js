@@ -140,6 +140,27 @@ const stagePosterTitles = {
   future: ['가고 싶은 도시', '만들고 싶은 작품', '이루고 싶은 목표', '미래의 나에게 보내는 메시지'],
 };
 
+const stagePosterComments = {
+  past: [
+    '처음으로 스스로를 칭찬했던 날의 감정.',
+    '가족과 웃던 순간이 아직도 선명하게 남아있다.',
+    '두려워도 한 걸음 내딛었던 그날의 용기.',
+    '작은 메모장에 큰 꿈을 적어 내려가던 시기.',
+  ],
+  present: [
+    '반복되는 일상 속에서도 꾸준함을 연습하는 중.',
+    '서로 다른 아이디어가 모여 더 나은 결과를 만든다.',
+    '어제보다 나아진 오늘을 남기는 개인 아카이브.',
+    '몰입하는 시간이 하루의 에너지를 채워준다.',
+  ],
+  future: [
+    '낯선 도시에서 새로운 시선을 만나고 싶다.',
+    '언젠가 사람들에게 오래 기억될 작품을 만들고 싶다.',
+    '명확한 목표는 매일의 선택을 단단하게 만든다.',
+    '미래의 나에게: 지금의 진심을 잊지 말자.',
+  ],
+};
+
 const stagePosterTextures = Object.fromEntries(
   Object.entries(stagePosterTexturePaths).map(([stageName, paths]) => [
     stageName,
@@ -233,6 +254,38 @@ function createPosterTitleTexture(text) {
   return texture;
 }
 
+function createPosterCommentTexture(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 176;
+  const ctx = canvas.getContext('2d');
+
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  gradient.addColorStop(0, 'rgba(255, 248, 236, 0.95)');
+  gradient.addColorStop(1, 'rgba(242, 234, 222, 0.95)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.strokeStyle = 'rgba(101, 82, 59, 0.25)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(52, 39, 27, 0.9)';
+  let fontSize = 42;
+  while (fontSize > 28) {
+    ctx.font = `500 ${fontSize}px Pretendard, Noto Sans KR, sans-serif`;
+    if (ctx.measureText(text).width < canvas.width - 90) break;
+    fontSize -= 2;
+  }
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function createStage(stage, i) {
   const group = new THREE.Group();
   group.position.copy(stage.center);
@@ -289,13 +342,10 @@ function createStage(stage, i) {
         new THREE.MeshStandardMaterial({
           map: stagePosterTextures[stage.name][posterIndex],
           roughness: 0.66,
-          side: THREE.DoubleSide,
+          side: THREE.FrontSide,
         }),
       );
       poster.position.set(0, 0.24, 0.26);
-      if (stage.name === 'past' && side === -1) {
-        poster.rotation.y = Math.PI;
-      }
       wall.add(poster);
       poster.userData.isPoster = true;
       posterMeshes.push(poster);
@@ -309,6 +359,16 @@ function createStage(stage, i) {
       );
       caption.position.set(0, -posterHeight * 0.5 + captionHeight * -0.6, 0.28);
       wall.add(caption);
+
+      const comment = new THREE.Mesh(
+        new THREE.PlaneGeometry(frameWidth - 0.2, captionHeight * 0.92),
+        new THREE.MeshBasicMaterial({
+          map: createPosterCommentTexture(stagePosterComments[stage.name][posterIndex]),
+          transparent: true,
+        }),
+      );
+      comment.position.set(0, -posterHeight * 0.5 - captionHeight * 1.15, 0.28);
+      wall.add(comment);
 
       const frameBack = new THREE.Mesh(
         new THREE.PlaneGeometry(frameWidth, frameHeight),
