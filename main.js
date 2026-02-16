@@ -299,7 +299,7 @@ function createStageTextTexture(text) {
 function createPosterTitleTexture(text) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
-  canvas.height = 220;
+  canvas.height = 300;
   const ctx = canvas.getContext('2d');
 
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
@@ -313,7 +313,7 @@ function createPosterTitleTexture(text) {
   ctx.strokeRect(14, 14, canvas.width - 28, canvas.height - 28);
 
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(255, 255, 255, 1)';
   ctx.strokeStyle = 'rgba(0, 0, 0, 0.38)';
   let fontSize = 74;
@@ -323,8 +323,12 @@ function createPosterTitleTexture(text) {
     fontSize -= 4;
   }
   ctx.lineWidth = 10;
-  ctx.strokeText(text, canvas.width / 2, canvas.height / 2 + 3);
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+  const titleMetrics = ctx.measureText(text);
+  const titleAscent = titleMetrics.actualBoundingBoxAscent || fontSize * 0.74;
+  const titleDescent = titleMetrics.actualBoundingBoxDescent || fontSize * 0.26;
+  const titleTextY = (canvas.height + titleAscent - titleDescent) / 2 - 10;
+  ctx.strokeText(text, canvas.width / 2, titleTextY);
+  ctx.fillText(text, canvas.width / 2, titleTextY);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -334,7 +338,7 @@ function createPosterTitleTexture(text) {
 function createPosterCommentTexture(text) {
   const canvas = document.createElement('canvas');
   canvas.width = 1024;
-  canvas.height = 210;
+  canvas.height = 260;
   const ctx = canvas.getContext('2d');
 
   const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
@@ -348,7 +352,7 @@ function createPosterCommentTexture(text) {
   ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
 
   ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = 'rgba(34, 24, 13, 0.98)';
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
   let fontSize = 45;
@@ -358,8 +362,12 @@ function createPosterCommentTexture(text) {
     fontSize -= 2;
   }
   ctx.lineWidth = 5;
-  ctx.strokeText(text, canvas.width / 2, canvas.height / 2 + 1);
-  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 1);
+  const commentMetrics = ctx.measureText(text);
+  const commentAscent = commentMetrics.actualBoundingBoxAscent || fontSize * 0.74;
+  const commentDescent = commentMetrics.actualBoundingBoxDescent || fontSize * 0.26;
+  const commentTextY = (canvas.height + commentAscent - commentDescent) / 2 - 8;
+  ctx.strokeText(text, canvas.width / 2, commentTextY);
+  ctx.fillText(text, canvas.width / 2, commentTextY);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
@@ -439,11 +447,9 @@ function createStage(stage, i) {
         new THREE.MeshBasicMaterial({
           map: createPosterTitleTexture(stagePosterTitles[stage.name][posterIndex]),
           transparent: true,
-          depthTest: false,
         }),
       );
       caption.position.set(0, -posterHeight * 0.5 - captionHeight * 0.4, 0.5);
-      caption.renderOrder = 10;
       wall.add(caption);
 
       const comment = new THREE.Mesh(
@@ -451,11 +457,9 @@ function createStage(stage, i) {
         new THREE.MeshBasicMaterial({
           map: createPosterCommentTexture(stagePosterComments[stage.name][posterIndex]),
           transparent: true,
-          depthTest: false,
         }),
       );
       comment.position.set(0, -posterHeight * 0.5 - captionHeight * 1.42, 0.5);
-      comment.renderOrder = 10;
       wall.add(comment);
 
       const frameBack = new THREE.Mesh(
