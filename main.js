@@ -692,6 +692,124 @@ const player = new THREE.Group();
 player.position.set(0, 0, 0);
 scene.add(player);
 
+const animationState = {
+  mixer: null,
+  actions: {},
+  activeAction: null,
+  proceduralRig: null,
+};
+
+function findAnimationClip(clips, preferredNames) {
+  if (!clips?.length) return null;
+
+  for (const preferred of preferredNames) {
+    const exact = clips.find((clip) => clip.name.toLowerCase() === preferred.toLowerCase());
+    if (exact) return exact;
+  }
+
+  for (const preferred of preferredNames) {
+    const partial = clips.find((clip) => clip.name.toLowerCase().includes(preferred.toLowerCase()));
+    if (partial) return partial;
+  }
+
+  return null;
+}
+
+function setAnimationAction(name, fade = 0.24) {
+  if (!animationState.actions[name]) return;
+
+  const next = animationState.actions[name];
+  if (animationState.activeAction === next) return;
+
+  next.reset().fadeIn(fade).play();
+  if (animationState.activeAction) {
+    animationState.activeAction.fadeOut(fade);
+  }
+  animationState.activeAction = next;
+}
+
+function clearAnimationState() {
+  if (animationState.mixer) {
+    animationState.mixer.stopAllAction();
+  }
+
+  animationState.mixer = null;
+  animationState.actions = {};
+  animationState.activeAction = null;
+  animationState.proceduralRig = null;
+}
+
+function setupModelAnimations(modelRoot, clips) {
+  clearAnimationState();
+  if (!clips?.length) return;
+
+  const mixer = new THREE.AnimationMixer(modelRoot);
+  const idleClip = findAnimationClip(clips, ['idle', 'breathe']);
+  const runClip = findAnimationClip(clips, ['run', 'running', 'walk', 'walking']);
+  const fallbackClip = clips[0];
+
+  const idleAction = mixer.clipAction(idleClip || fallbackClip);
+  const runAction = mixer.clipAction(runClip || idleClip || fallbackClip);
+  idleAction.enabled = true;
+  runAction.enabled = true;
+  idleAction.play();
+
+  animationState.mixer = mixer;
+  animationState.actions = {
+    Idle: idleAction,
+    Run: runAction,
+  };
+  animationState.activeAction = idleAction;
+}
+
+function setupProceduralRig(root) {
+  const rig = {
+    hipY: root.position.y,
+    leftArm: null,
+    rightArm: null,
+    leftLeg: null,
+    rightLeg: null,
+  };
+
+  root.traverse((obj) => {
+    if (!obj?.isMesh) return;
+    const y = obj.position.y;
+    const x = obj.position.x;
+
+    if (obj.geometry?.type === 'CapsuleGeometry') {
+      if (y > 0.68 && Math.abs(x) > 0.3) {
+        if (x < 0) rig.leftArm = obj;
+        else rig.rightArm = obj;
+      } else if (y < 0.35 && Math.abs(x) < 0.25) {
+        if (x < 0) rig.leftLeg = obj;
+        else rig.rightLeg = obj;
+      }
+    }
+  });
+
+  const hasLimbSet = rig.leftArm && rig.rightArm && rig.leftLeg && rig.rightLeg;
+  animationState.proceduralRig = hasLimbSet ? rig : null;
+}
+
+function updateProceduralAnimation(t) {
+  const rig = animationState.proceduralRig;
+  if (!rig) return;
+
+  const moving = state.actor === 'Run';
+  const speed = moving ? 11.5 : 3.6;
+  const stride = moving ? 0.72 : 0.08;
+  const armStride = moving ? 0.9 : 0.1;
+  const phase = t * speed;
+
+  rig.leftArm.rotation.x = Math.sin(phase) * armStride + 0.1;
+  rig.rightArm.rotation.x = -Math.sin(phase) * armStride - 0.1;
+  rig.leftLeg.rotation.x = -Math.sin(phase) * stride;
+  rig.rightLeg.rotation.x = Math.sin(phase) * stride;
+
+  const bobScale = moving ? 0.06 : 0.03;
+  player.position.y = rig.hipY + Math.abs(Math.sin(phase * 0.5)) * bobScale;
+}
+
 function loadMainCharacter() {
   const loader = new GLTFLoader();
   const modelCandidates = [
@@ -702,7 +820,9 @@ function loadMainCharacter() {
 
   const applyModelToPlayer = (model) => {
     player.clear();
+    model.scale.multiplyScalar(0.5);
     player.add(model);
+    setupProceduralRig(model);
   };
 
   const applyFallback = (hintText) => {
@@ -747,6 +867,7 @@ function loadMainCharacter() {
           });
 
           applyModelToPlayer(modelRoot);
+          setupModelAnimations(modelRoot, gltf.animations);
           setHint(`GLB 캐릭터(${modelCandidates[index]})를 불러왔어요. 바닥을 클릭해 이동해 보세요.`);
         } catch (_error) {
           tryLoad(index + 1);
@@ -955,10 +1076,15 @@ function animate() {
   updateStage();
   updateCamera(dt);
 
-  if (state.actor === 'Idle') {
-    player.position.y = Math.sin(t * 3.2) * 0.03;
+  if (animationState.mixer) {
+    animationState.mixer.update(dt);
+    setAnimationAction(state.actor === 'Run' ? 'Run' : 'Idle');
+    player.position.y = 0;
   }
 
+  if (!animationState.mixer) {
+    updateProceduralAnimation(t);
+  }
 
   sparkles.rotation.y = Math.sin(t * 0.04) * 0.4;
   sparkles.position.y = Math.sin(t * 0.3) * 0.5;
