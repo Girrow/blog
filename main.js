@@ -1,4 +1,5 @@
 import * as THREE from 'https://unpkg.com/three@0.165.0/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb8c8ff);
@@ -119,6 +120,12 @@ const stagePosterTexturePaths = {
   ],
 };
 
+const stagePosterTitles = {
+  past: ['어린 시절의 첫 기억', '가족과 함께한 여행', '학교에서의 첫 도전', '꿈을 키우던 순간'],
+  present: ['지금의 일상 루틴', '함께하는 팀 프로젝트', '성장 중인 나의 기록', '요즘 가장 몰입한 취미'],
+  future: ['가고 싶은 도시', '만들고 싶은 작품', '이루고 싶은 목표', '미래의 나에게 보내는 메시지'],
+};
+
 const stagePosterTextures = Object.fromEntries(
   Object.entries(stagePosterTexturePaths).map(([stageName, paths]) => [
     stageName,
@@ -183,6 +190,34 @@ function createStageTextTexture(text) {
   return texture;
 }
 
+function createPosterTitleTexture(text) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024;
+  canvas.height = 192;
+  const ctx = canvas.getContext('2d');
+
+  const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+  gradient.addColorStop(0, 'rgba(33, 28, 53, 0.82)');
+  gradient.addColorStop(1, 'rgba(52, 42, 77, 0.82)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255, 252, 246, 0.98)';
+  let fontSize = 70;
+  while (fontSize > 40) {
+    ctx.font = `700 ${fontSize}px Pretendard, Noto Sans KR, sans-serif`;
+    if (ctx.measureText(text).width < canvas.width - 90) break;
+    fontSize -= 4;
+  }
+  ctx.fillText(text, canvas.width / 2, canvas.height / 2 + 2);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 function createStage(stage, i) {
   const group = new THREE.Group();
   group.position.copy(stage.center);
@@ -220,10 +255,12 @@ function createStage(stage, i) {
       wall.receiveShadow = true;
       group.add(wall);
 
+      const posterIndex = (w + (side === 1 ? 2 : 0)) % stagePosterTextures[stage.name].length;
+
       const poster = new THREE.Mesh(
         new THREE.PlaneGeometry(12.4 * galleryScale, 8 * galleryScale),
         new THREE.MeshStandardMaterial({
-          map: stagePosterTextures[stage.name][(w + (side === 1 ? 2 : 0)) % stagePosterTextures[stage.name].length],
+          map: stagePosterTextures[stage.name][posterIndex],
           roughness: 0.66,
           side: THREE.DoubleSide,
         }),
@@ -232,6 +269,16 @@ function createStage(stage, i) {
       wall.add(poster);
       poster.userData.isPoster = true;
       posterMeshes.push(poster);
+
+      const caption = new THREE.Mesh(
+        new THREE.PlaneGeometry(12.2 * galleryScale, 1.6 * galleryScale),
+        new THREE.MeshBasicMaterial({
+          map: createPosterTitleTexture(stagePosterTitles[stage.name][posterIndex]),
+          transparent: true,
+        }),
+      );
+      caption.position.set(0, -3.2, 0.28);
+      wall.add(caption);
 
       const frameBack = new THREE.Mesh(
         new THREE.PlaneGeometry(13.8 * galleryScale, 9.4 * galleryScale),
@@ -411,7 +458,7 @@ function createNatureDecor() {
 
 createNatureDecor();
 
-function createMaleCharacter() {
+function createFallbackCharacter() {
   const character = new THREE.Group();
 
   const yellowMat = shared.skin.clone();
@@ -469,7 +516,6 @@ function createMaleCharacter() {
   const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
   const irisMat = new THREE.MeshStandardMaterial({ color: 0x4f2507, roughness: 0.2 });
   const pupilMat = new THREE.MeshStandardMaterial({ color: 0x060606, roughness: 0.2 });
-
 
   for (const side of [-1, 1]) {
     const eyeWhite = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 18), eyeWhiteMat);
@@ -620,9 +666,53 @@ function createMaleCharacter() {
   return character;
 }
 
-const player = createMaleCharacter();
+const player = new THREE.Group();
 player.position.set(0, 0, 0);
 scene.add(player);
+
+const gltfLoader = new GLTFLoader();
+
+function loadMainCharacter() {
+  const modelUrl = 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
+  gltfLoader.load(
+    modelUrl,
+    (gltf) => {
+      player.clear();
+      const character = gltf.scene;
+      character.rotation.y = Math.PI;
+
+      const box = new THREE.Box3().setFromObject(character);
+      const size = box.getSize(new THREE.Vector3());
+      const targetHeight = 2.15;
+      const safeHeight = Math.max(size.y, 0.001);
+      const scale = targetHeight / safeHeight;
+      character.scale.setScalar(scale);
+
+      const fittedBox = new THREE.Box3().setFromObject(character);
+      const center = fittedBox.getCenter(new THREE.Vector3());
+      const minY = fittedBox.min.y;
+      character.position.set(-center.x, -minY, -center.z);
+
+      character.traverse((obj) => {
+        if (obj.isMesh) {
+          obj.castShadow = true;
+          obj.receiveShadow = true;
+        }
+      });
+
+      player.add(character);
+      setHint('메인 캐릭터를 GLB 모델로 불러왔어요. 바닥을 클릭해 이동해 보세요.');
+    },
+    undefined,
+    () => {
+      player.clear();
+      player.add(createFallbackCharacter());
+      setHint('GLB 캐릭터 로드에 실패해 기본 캐릭터로 표시 중이에요.');
+    },
+  );
+}
+
+loadMainCharacter();
 
 const state = {
   stage: 0,
