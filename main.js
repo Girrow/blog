@@ -1,4 +1,5 @@
 import * as THREE from './static/vendor/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xb8c8ff);
@@ -57,40 +58,54 @@ const warmLight = new THREE.PointLight(0xffb8f7, 28, 42, 1.8);
 warmLight.position.set(0, 5, 0);
 scene.add(warmLight);
 
-function makeGridTexture() {
+function makeGrassTexture() {
   const canvas = document.createElement('canvas');
   canvas.width = 512;
   canvas.height = 512;
   const ctx = canvas.getContext('2d');
-  const grad = ctx.createLinearGradient(0, 0, 512, 512);
-  grad.addColorStop(0, '#fde9ff');
-  grad.addColorStop(0.5, '#efe2ff');
-  grad.addColorStop(1, '#dff1ff');
+
+  const grad = ctx.createLinearGradient(0, 0, 0, 512);
+  grad.addColorStop(0, '#73b969');
+  grad.addColorStop(0.55, '#5fa452');
+  grad.addColorStop(1, '#4a8a3f');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 512, 512);
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-  ctx.lineWidth = 1;
-  for (let i = 0; i <= 512; i += 24) {
-    ctx.beginPath();
-    ctx.moveTo(i, 0);
-    ctx.lineTo(i, 512);
-    ctx.stroke();
 
+  for (let i = 0; i < 3000; i += 1) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const len = 4 + Math.random() * 8;
+    const tilt = (Math.random() - 0.5) * 1.2;
+    ctx.strokeStyle = `rgba(${70 + Math.random() * 45}, ${130 + Math.random() * 80}, ${50 + Math.random() * 35}, ${0.2 + Math.random() * 0.22})`;
+    ctx.lineWidth = 0.7 + Math.random() * 0.9;
     ctx.beginPath();
-    ctx.moveTo(0, i);
-    ctx.lineTo(512, i);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + tilt, y - len);
     ctx.stroke();
   }
+
+  for (let i = 0; i < 450; i += 1) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const size = 1.2 + Math.random() * 2.4;
+    ctx.fillStyle = `rgba(${90 + Math.random() * 50}, ${145 + Math.random() * 65}, ${70 + Math.random() * 40}, 0.12)`;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   const texture = new THREE.CanvasTexture(canvas);
   texture.wrapS = THREE.RepeatWrapping;
   texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(20, 20);
+  texture.repeat.set(28, 18);
   return texture;
 }
 
+const grassTexture = makeGrassTexture();
+
 const ground = new THREE.Mesh(
   new THREE.PlaneGeometry(260, 160),
-  new THREE.MeshStandardMaterial({ map: makeGridTexture(), roughness: 0.94, metalness: 0.04 }),
+  new THREE.MeshStandardMaterial({ map: grassTexture, roughness: 0.94, metalness: 0.02 }),
 );
 ground.rotation.x = -Math.PI / 2;
 ground.position.y = -0.82;
@@ -226,7 +241,11 @@ function createStage(stage, i) {
   floor.receiveShadow = true;
   floor.position.y = -0.8;
   floor.material = floor.material.clone();
-  floor.material.color.setHex(stage.color);
+  floor.material.map = grassTexture;
+  floor.material.color.setHex(0xd4f2c7);
+  floor.material.roughness = 0.95;
+  floor.material.metalness = 0.01;
+  floor.material.needsUpdate = true;
   group.add(floor);
   walkableMeshes.push(floor);
 
@@ -347,7 +366,11 @@ for (let i = 0; i < stages.length - 1; i += 1) {
   bridge.position.set(bridgeCenter.x, -0.7, bridgeCenter.z);
   bridge.rotation.y = Math.atan2(direction.z, direction.x);
   bridge.material = bridge.material.clone();
-  bridge.material.color.setHex(0xede7d8);
+  bridge.material.map = grassTexture;
+  bridge.material.color.setHex(0xc6e8b6);
+  bridge.material.roughness = 0.95;
+  bridge.material.metalness = 0.01;
+  bridge.material.needsUpdate = true;
   bridge.receiveShadow = true;
   world.add(bridge);
   walkableMeshes.push(bridge);
@@ -360,11 +383,11 @@ for (let i = 0; i < stages.length - 1; i += 1) {
 }
 
 function createNatureDecor() {
-  const grassAreaGeo = new THREE.PlaneGeometry(340, 220);
-  const grassAreaMat = new THREE.MeshStandardMaterial({ color: 0x80c56f, roughness: 0.96, metalness: 0.02 });
+  const grassAreaGeo = new THREE.PlaneGeometry(420, 300);
+  const grassAreaMat = new THREE.MeshStandardMaterial({ map: grassTexture, color: 0x9dd48f, roughness: 0.96, metalness: 0.02 });
   const grassArea = new THREE.Mesh(grassAreaGeo, grassAreaMat);
   grassArea.rotation.x = -Math.PI / 2;
-  grassArea.position.y = -0.86;
+  grassArea.position.y = -0.87;
   grassArea.receiveShadow = true;
   world.add(grassArea);
 
@@ -670,9 +693,52 @@ player.position.set(0, 0, 0);
 scene.add(player);
 
 function loadMainCharacter() {
-  player.clear();
-  player.add(createFallbackCharacter());
-  setHint('기본 three.js 캐릭터를 사용 중이에요. 바닥을 클릭해 이동해 보세요.');
+  const loader = new GLTFLoader();
+  const modelCandidates = [
+    'static/models/character.glb',
+    'static/models/main-character.glb',
+    'static/models/avatar.glb',
+  ];
+
+  const tryLoad = (index) => {
+    if (index >= modelCandidates.length) {
+      player.clear();
+      player.add(createFallbackCharacter());
+      setHint('GLB 파일을 찾지 못해 기본 캐릭터를 사용 중이에요. static/models/character.glb 파일을 추가해 주세요.');
+      return;
+    }
+
+    loader.load(
+      modelCandidates[index],
+      (gltf) => {
+        const modelRoot = gltf.scene;
+        modelRoot.scale.setScalar(1.5);
+        const box = new THREE.Box3().setFromObject(modelRoot);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+
+        modelRoot.position.sub(center);
+        modelRoot.position.y += size.y * 0.5;
+
+        modelRoot.traverse((obj) => {
+          if (obj.isMesh) {
+            obj.castShadow = true;
+            obj.receiveShadow = true;
+          }
+        });
+
+        player.clear();
+        player.add(modelRoot);
+        setHint(`GLB 캐릭터(${modelCandidates[index]})를 불러왔어요. 바닥을 클릭해 이동해 보세요.`);
+      },
+      undefined,
+      () => tryLoad(index + 1),
+    );
+  };
+
+  tryLoad(0);
 }
 
 loadMainCharacter();
