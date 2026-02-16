@@ -673,7 +673,7 @@ scene.add(player);
 const gltfLoader = new GLTFLoader();
 
 function loadMainCharacter() {
-  const modelUrl = 'https://threejs.org/examples/models/gltf/RobotExpressive/RobotExpressive.glb';
+  const modelUrl = './static/models/RobotExpressive.glb';
   gltfLoader.load(
     modelUrl,
     (gltf) => {
