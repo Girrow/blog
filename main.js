@@ -700,38 +700,57 @@ function loadMainCharacter() {
     'static/models/avatar.glb',
   ];
 
+  const applyModelToPlayer = (model) => {
+    player.clear();
+    player.add(model);
+  };
+
+  const applyFallback = (hintText) => {
+    applyModelToPlayer(createFallbackCharacter());
+    setHint(hintText);
+  };
+
+  // GLB 파싱이 지연되거나 실패하더라도 장면이 비어 보이지 않게 기본 캐릭터를 먼저 배치합니다.
+  applyFallback('GLB 파일을 불러오는 중이에요...');
+
   const tryLoad = (index) => {
     if (index >= modelCandidates.length) {
-      player.clear();
-      player.add(createFallbackCharacter());
-      setHint('GLB 파일을 찾지 못해 기본 캐릭터를 사용 중이에요. static/models/character.glb 파일을 추가해 주세요.');
+      applyFallback('GLB 파일을 찾지 못해 기본 캐릭터를 사용 중이에요. static/models/character.glb 파일을 추가해 주세요.');
       return;
     }
 
     loader.load(
       modelCandidates[index],
       (gltf) => {
-        const modelRoot = gltf.scene;
-        modelRoot.scale.setScalar(1.5);
-        const box = new THREE.Box3().setFromObject(modelRoot);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        const center = new THREE.Vector3();
-        box.getCenter(center);
+        try {
+          const modelRoot = gltf.scene || gltf.scenes?.[0];
+          if (!modelRoot) throw new Error('GLTF scene is missing');
 
-        modelRoot.position.sub(center);
-        modelRoot.position.y += size.y * 0.5;
+          modelRoot.scale.setScalar(1.5);
+          const box = new THREE.Box3().setFromObject(modelRoot);
+          const size = new THREE.Vector3();
+          box.getSize(size);
+          const center = new THREE.Vector3();
+          box.getCenter(center);
 
-        modelRoot.traverse((obj) => {
-          if (obj.isMesh) {
-            obj.castShadow = true;
-            obj.receiveShadow = true;
-          }
-        });
+          const invalidSize = [size.x, size.y, size.z].some((value) => !Number.isFinite(value) || value <= 0.0001);
+          if (invalidSize) throw new Error('Model bounds are invalid');
 
-        player.clear();
-        player.add(modelRoot);
-        setHint(`GLB 캐릭터(${modelCandidates[index]})를 불러왔어요. 바닥을 클릭해 이동해 보세요.`);
+          modelRoot.position.sub(center);
+          modelRoot.position.y += size.y * 0.5;
+
+          modelRoot.traverse((obj) => {
+            if (obj.isMesh) {
+              obj.castShadow = true;
+              obj.receiveShadow = true;
+            }
+          });
+
+          applyModelToPlayer(modelRoot);
+          setHint(`GLB 캐릭터(${modelCandidates[index]})를 불러왔어요. 바닥을 클릭해 이동해 보세요.`);
+        } catch (_error) {
+          tryLoad(index + 1);
+        }
       },
       undefined,
       () => tryLoad(index + 1),
